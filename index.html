@@ -4,20 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>بقالتك - النظام المتكامل والجاهز للعمل</title>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
-    
-    <!-- Google Maps API Script -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places,geometry"></script>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_Maps_API_KEY&libraries=places,geometry"></script>
 
 
     <style>
@@ -25,6 +24,9 @@
         .view { display: none; }
         .page { display: none; animation: fadeIn 0.5s; }
         .page.active { display: block; }
+        .customer-page { display: none; }
+        .customer-page.active { display: block; }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         .btn-primary { font-weight: bold; padding: 0.75rem 1.5rem; border-radius: 0.5rem; transition: all 0.3s; cursor: pointer; }
@@ -40,7 +42,10 @@
         .light-mode .order-column, .light-mode .portal-bg { background-color: #f9fafb; }
         .light-mode .order-card { background-color: white; }
         .light-mode .customer-view-bg { background-color: #f7fafc; }
-        
+        .light-mode .customer-bottom-nav a { color: #6b7280; }
+        .light-mode .customer-bottom-nav a.active { color: #ea580c; }
+
+
         /* --- Dark Mode --- */
         body.dark-mode { background-color: #0f172a; color: #e2e8f0; }
         body.dark-mode .sidebar { background-color: #1e293b; }
@@ -55,6 +60,10 @@
         body.dark-mode .order-column, body.dark-mode .portal-bg { background-color: #1f2937; }
         body.dark-mode .order-card { background-color: #374151; }
         body.dark-mode .customer-view-bg { background-color: #1a202c; }
+        body.dark-mode .customer-bottom-nav { background-color: #1e293b; border-top-color: #374151; }
+        body.dark-mode .customer-bottom-nav a { color: #9ca3af; }
+        body.dark-mode .customer-bottom-nav a.active { color: #fb923c; }
+
 
         .category-filters-container::-webkit-scrollbar { display: none; }
         .category-filters-container { -ms-overflow-style: none; scrollbar-width: none; }
@@ -84,6 +93,10 @@
         @keyframes bell-ring { 0% { transform: rotate(0); } 15% { transform: rotate(15deg); } 30% { transform: rotate(-15deg); } 45% { transform: rotate(10deg); } 60% { transform: rotate(-10deg); } 75% { transform: rotate(5deg); } 85% { transform: rotate(-5deg); } 100% { transform: rotate(0); } }
         .notification-bell.active { animation: bell-ring 0.8s ease-in-out; }
 
+        .map-container { height: 250px; width: 100%; border-radius: 0.5rem; background-color: #e5e7eb; }
+        .dashboard-map-container { height: 75vh; width: 100%; border-radius: 0.5rem; background-color: #e5e7eb; }
+
+
         @media print {
             body * { visibility: hidden; }
             .print-area, .print-area * { visibility: visible; }
@@ -94,7 +107,6 @@
 </head>
 <body class="light-mode">
     <div id="root-container">
-        <!-- SELECTION VIEW -->
         <div id="selection-view" class="view flex flex-col items-center justify-center h-screen p-4">
             <div class="p-8 md:p-12 rounded-lg shadow-2xl text-center w-full max-w-md bg-white">
                 <img id="logo-selection" src="" alt="Logo" class="max-w-[180px] h-auto mx-auto mb-6">
@@ -107,10 +119,8 @@
             </div>
         </div>
         
-        <!-- PASSWORD OVERLAY -->
         <div id="password-overlay" class="view fixed inset-0 bg-gray-900 bg-opacity-75 flex-col items-center justify-center z-50 p-4"></div>
         
-        <!-- ADMIN APP CONTAINER -->
         <div id="app-container" class="view">
             <div class="relative min-h-screen md:flex">
                 <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden md:hidden"></div>
@@ -157,10 +167,8 @@
             </div>
         </div>
         
-        <!-- CUSTOMER VIEW -->
-        <div id="customer-view" class="view customer-view-bg"></div>
+        <div id="customer-view" class="view customer-view-bg min-h-screen pb-24"></div>
 
-        <!-- DRIVER PORTAL VIEW -->
         <div id="driver-portal-view" class="view portal-bg min-h-screen"></div>
 
     </div>
@@ -176,8 +184,9 @@
         const logoUrl = "https://d.top4top.io/p_3489e11m01.png";
         let currentUser = null; // Can be 'admin' or 'driver'
         let cart = {};
-        let driverIntervals = {}; // To store simulation intervals
-        
+        let driverIntervals = {}; // To store simulation intervals for maps
+        let mapInstances = {}; // To store initialized map objects
+
         // ----------------- GEMINI API FUNCTION -----------------
         async function callGemini(prompt, buttonElement) {
             if (buttonElement) {
@@ -185,7 +194,7 @@
                 buttonElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> جاري التفكير...`;
             }
             const apiKey = ""; 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
             const payload = { contents: [{ parts: [{ text: prompt }] }] };
             try {
                 const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -276,7 +285,6 @@
                 counters: { product: 32, customer: 1, order: 2, user: 1, promotion: 1, expense: 1, driver: 1, return: 0 }
             };
             if (data) { try { db = JSON.parse(data); } catch (e) { db = defaultDB; } } else { db = defaultDB; }
-            // Ensure new structures exist
             if (!db.drivers) db.drivers = [];
             if (!db.returns) db.returns = [];
             if (!db.chats) db.chats = {};
@@ -293,7 +301,7 @@
         function driverLogin(phone, pin) { const driver = getDB().drivers.find(d => d.phone === phone && d.pin === pin); if (driver) { currentUser = { ...driver, type: 'driver' }; sessionStorage.setItem('currentUser', JSON.stringify(currentUser)); return true; } return false; }
         function logout() { Object.values(driverIntervals).forEach(clearInterval); driverIntervals = {}; currentUser = null; sessionStorage.removeItem('currentUser'); window.location.hash = ''; window.location.reload(); }
         function showToast(message, type = 'success') { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = `p-4 rounded-lg shadow-lg text-white font-bold ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`; t.textContent = message; c.prepend(t); setTimeout(() => t.remove(), 4000); }
-        function openModal(title, content, modalClasses = 'max-w-2xl') { const mC = document.getElementById('modal-container'); mC.innerHTML = `<div class="modal fixed inset-0 bg-black bg-opacity-50" style="display:flex; align-items:center; justify-content:center; z-index: 100;"><div class="modal-content ${modalClasses} w-full m-4 p-6 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center mb-4 border-b pb-2 no-print"><h2 class="text-2xl font-bold">${title}</h2><button class="close-modal-btn text-3xl">&times;</button></div><div>${content}</div></div></div>`; mC.querySelector('.close-modal-btn').addEventListener('click', () => mC.innerHTML = ''); }
+        function openModal(title, content, modalClasses = 'max-w-2xl') { const mC = document.getElementById('modal-container'); mC.innerHTML = `<div class="modal fixed inset-0 bg-black bg-opacity-50" style="display:flex; align-items:center; justify-content:center; z-index: 100;"><div class="modal-content ${modalClasses} w-full m-4 p-6 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center mb-4 border-b pb-2 no-print"><h2 class="text-2xl font-bold">${title}</h2><button class="close-modal-btn text-3xl">×</button></div><div>${content}</div></div></div>`; mC.querySelector('.close-modal-btn').addEventListener('click', () => mC.innerHTML = ''); }
         function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
         function renderPage(pageId, htmlContent, listeners) { const page = document.getElementById(pageId); if (page) { page.innerHTML = htmlContent; if(listeners) listeners(); } }
         function timeAgo(date) { const seconds = Math.floor((new Date() - new Date(date)) / 1000); let interval = seconds / 31536000; if (interval > 1) return `منذ ${Math.floor(interval)} سنة`; interval = seconds / 2592000; if (interval > 1) return `منذ ${Math.floor(interval)} شهر`; interval = seconds / 86400; if (interval > 1) return `منذ ${Math.floor(interval)} يوم`; interval = seconds / 3600; if (interval > 1) return `منذ ${Math.floor(interval)} ساعة`; interval = seconds / 60; if (interval > 1) return `منذ ${Math.floor(interval)} دقيقة`; return `منذ ${Math.floor(seconds)} ثانية`; }
@@ -354,14 +362,15 @@
             overlay.style.display = 'flex';
         }
 
-        // ----------------- CUSTOMER VIEW FUNCTIONS -----------------
+        // ----------------- CUSTOMER VIEW FUNCTIONS (NEW MOBILE UI) -----------------
         function renderPublicView() {
             window.removeEventListener('storage', handleStorageEvent);
             const hash = window.location.hash.substring(1);
             if (hash.startsWith('track=')) {
                 renderOrderTrackingPage(hash.substring(6));
             } else {
-                renderStorePage();
+                renderStoreAppShell();
+                handleCustomerNav('home'); 
             }
         }
         
@@ -384,79 +393,173 @@
             }
         }
 
-        function renderStorePage() {
+        function renderStoreAppShell() {
             const customerView = document.getElementById('customer-view');
-            const featuredProducts = db.products.filter(p => p.isFeatured && p.stock > 0);
-            
             customerView.innerHTML = `
-                <header class="bg-white shadow-md sticky top-0 z-40 no-print">
-                    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8"><div class="flex items-center justify-between h-20"><div class="flex items-center"><img id="logo-public" src="${logoUrl}" alt="Logo" class="h-12"><h1 id="public-store-name" class="text-xl font-bold mr-4 hidden md:block"></h1></div><div class="flex-1 mx-4 max-w-lg"><div class="relative"><span class="absolute inset-y-0 right-0 flex items-center pr-3"><i class="fa-solid fa-search text-gray-400"></i></span><input id="public-product-search" class="w-full p-2 pr-10 border rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="ابحث عن منتج..."></div></div></div></div>
-                </header>
-                <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div class="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
-                        <main class="lg:col-span-8 xl:col-span-8">
-                            ${featuredProducts.length > 0 ? `<div class="mb-8"><h2 class="text-2xl font-bold mb-4">منتجات مميزة</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4 featured-products-grid">${featuredProducts.map(p => createProductCard(p)).join('')}</div></div><hr class="my-6 border-gray-300">` : ''}
-                            <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">الأقسام</h2></div>
-                            <div class="category-filters-container flex overflow-x-auto gap-3 pb-4 mb-6"></div>
-                            <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">جميع المنتجات</h2><select id="public-product-sort" class="p-2 border rounded-lg bg-white"><option value="default">فرز حسب</option><option value="price-asc">السعر: من الأقل للأعلى</option><option value="price-desc">السعر: من الأعلى للأقل</option><option value="name-asc">الاسم: أ - ي</option></select></div>
-                            <div id="public-products-list" class="flex flex-col gap-4"></div>
-                        </main>
-                        <aside id="checkout-sidebar" class="lg:col-span-4 xl:col-span-4 mt-8 lg:mt-0"></aside>
-                    </div>
+                <div id="customer-main-content">
+                    <div id="customer-page-home" class="customer-page"></div>
+                    <div id="customer-page-categories" class="customer-page"></div>
+                    <div id="customer-page-track" class="customer-page"></div>
                 </div>
-                <div id="push-notification-banner" class="fixed bottom-0 left-0 right-0 bg-blue-500 text-white p-4 text-center transform translate-y-full transition-transform duration-500">
-                    <p>هل تسمح بتلقي إشعارات حول حالة طلبك؟ <button id="enable-push-btn" class="font-bold underline ml-4">نعم، أسمح</button><button id="disable-push-btn" class="font-bold ml-4 text-sm">لاحقاً</button></p>
-                </div>`;
-            
-            document.getElementById('public-store-name').textContent = getDB().settings.storeName;
-            document.getElementById('public-product-search').addEventListener('input', displayPublicProducts);
-            document.getElementById('public-product-sort').addEventListener('change', displayPublicProducts);
-            
-            const mainContainer = customerView.querySelector('main');
-            if (mainContainer) {
-                mainContainer.addEventListener('click', (event) => {
-                    const button = event.target.closest('.update-cart-btn');
-                    if (button) {
-                        updateCart(Number(button.dataset.id), Number(button.dataset.change));
-                    }
+
+                <button id="cart-fab" class="fixed bottom-20 right-4 bg-orange-500 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-lg text-2xl z-40 transition-transform hover:scale-110">
+                    <i class="fa-solid fa-shopping-cart"></i>
+                    <span id="cart-fab-count" class="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-white">0</span>
+                </button>
+
+                <nav class="customer-bottom-nav fixed bottom-0 left-0 right-0 bg-white shadow-lg flex justify-around p-2 border-t z-50">
+                    <a href="#home" class="customer-nav-link flex flex-col items-center p-2 rounded-lg w-full text-center transition-colors">
+                        <i class="fa-solid fa-store text-xl"></i><span class="text-xs mt-1">المتجر</span>
+                    </a>
+                    <a href="#categories" class="customer-nav-link flex flex-col items-center p-2 rounded-lg w-full text-center transition-colors">
+                        <i class="fa-solid fa-grip text-xl"></i><span class="text-xs mt-1">الأقسام</span>
+                    </a>
+                    <a href="#track" class="customer-nav-link flex flex-col items-center p-2 rounded-lg w-full text-center transition-colors">
+                        <i class="fa-solid fa-truck-fast text-xl"></i><span class="text-xs mt-1">تتبع طلبك</span>
+                    </a>
+                </nav>
+            `;
+
+            document.querySelectorAll('.customer-nav-link').forEach(link => {
+                link.addEventListener('click', e => {
+                    e.preventDefault();
+                    const targetPage = e.currentTarget.hash.substring(1);
+                    handleCustomerNav(targetPage);
                 });
-            }
-
-            renderCategoryFilters();
-            displayPublicProducts();
-            renderCheckoutSidebar();
-
-            if ('Notification' in window && Notification.permission === 'default') {
-                setTimeout(() => {
-                    document.getElementById('push-notification-banner').classList.remove('translate-y-full');
-                }, 3000);
-            }
-            document.getElementById('enable-push-btn').addEventListener('click', requestNotificationPermission);
-            document.getElementById('disable-push-btn').addEventListener('click', () => {
-                document.getElementById('push-notification-banner').classList.add('translate-y-full');
             });
+
+            document.getElementById('cart-fab').addEventListener('click', renderCheckoutModal);
+            updateCartButton();
         }
 
-        function requestNotificationPermission() {
-             document.getElementById('push-notification-banner').classList.add('translate-y-full');
-            if (!('Notification' in window)) {
-                showToast('هذا المتصفح لا يدعم الإشعارات.', 'error');
-                return;
+        function handleCustomerNav(pageName) {
+            document.querySelectorAll('.customer-page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.customer-nav-link').forEach(l => l.classList.remove('active'));
+            
+            const activePage = document.getElementById(`customer-page-${pageName}`);
+            const activeLink = document.querySelector(`.customer-nav-link[href="#${pageName}"]`);
+
+            if (activePage) activePage.classList.add('active');
+            if (activeLink) activeLink.classList.add('active');
+
+            switch(pageName) {
+                case 'home':
+                    renderStoreHomePage();
+                    break;
+                case 'categories':
+                    renderCategoriesPage();
+                    break;
+                case 'track':
+                    renderTrackOrderInputPage();
+                    break;
             }
-            Notification.requestPermission().then(permission => {
-                if (permission === 'granted') {
-                    showToast('شكراً! ستتلقى إشعارات بحالة طلبك.');
-                    console.log('Notification permission granted.');
-                } else {
-                    showToast('تم رفض الإذن. يمكنك تفعيله من إعدادات المتصفح.', 'error');
+        }
+        
+        function renderStoreHomePage() {
+            const container = document.getElementById('customer-page-home');
+            const featuredProducts = db.products.filter(p => p.isFeatured && p.stock > 0);
+            container.innerHTML = `
+                 <header class="bg-white sticky top-0 z-30 p-4">
+                    <div class="flex items-center justify-between">
+                        <img id="logo-public" src="${logoUrl}" alt="Logo" class="h-10">
+                        <div class="relative flex-grow mx-4">
+                            <span class="absolute inset-y-0 right-0 flex items-center pr-3"><i class="fa-solid fa-search text-gray-400"></i></span>
+                            <input id="public-product-search" class="w-full p-2 pr-10 border rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500" placeholder="ابحث عن منتج...">
+                        </div>
+                    </div>
+                </header>
+                <main class="p-4">
+                    ${featuredProducts.length > 0 ? `<div class="mb-8"><h2 class="text-2xl font-bold mb-4">منتجات مميزة</h2><div class="grid grid-cols-1 md:grid-cols-2 gap-4 featured-products-grid">${featuredProducts.map(p => createProductCard(p)).join('')}</div></div><hr class="my-6 border-gray-300">` : ''}
+                    <div class="flex justify-between items-center mb-4"><h2 class="text-2xl font-bold">كل المنتجات</h2><select id="public-product-sort" class="p-2 border rounded-lg bg-white"><option value="default">فرز حسب</option><option value="price-asc">السعر: من الأقل للأعلى</option><option value="price-desc">السعر: من الأعلى للأقل</option><option value="name-asc">الاسم: أ - ي</option></select></div>
+                    <div id="public-products-list" class="flex flex-col gap-4"></div>
+                </main>
+            `;
+            document.getElementById('public-product-search').addEventListener('input', displayPublicProducts);
+            document.getElementById('public-product-sort').addEventListener('change', displayPublicProducts);
+            container.addEventListener('click', (event) => {
+                const button = event.target.closest('.update-cart-btn');
+                if (button) {
+                    updateCart(Number(button.dataset.id), Number(button.dataset.change));
+                }
+            });
+            displayPublicProducts();
+        }
+
+        function renderCategoriesPage() {
+            const container = document.getElementById('customer-page-categories');
+            const categories = [...new Set(db.products.map(p => p.category))];
+            const categoryIcons = {
+                'فواكه': 'fa-apple-whole', 'خضروات': 'fa-carrot', 'مخبوزات': 'fa-bread-slice', 'ألبان وبيض': 'fa-egg', 'لحوم ودواجن': 'fa-drumstick-bite',
+                'مشروبات': 'fa-bottle-water', 'معلبات': 'fa-jar', 'حبوب ومعكرونة': 'fa-bowl-rice', 'وجبات خفيفة': 'fa-cookie', 'حلويات': 'fa-candy-cane',
+                'مجمدات': 'fa-ice-cream', 'بهارات وتوابل': 'fa-mortar-pestle', 'زيوت وصلصات': 'fa-bottle-droplet', 'منظفات': 'fa-soap', 'عناية شخصية': 'fa-tooth',
+                'مستلزمات أطفال': 'fa-baby', 'أدوات منزلية': 'fa-box'
+            };
+            container.innerHTML = `
+                 <header class="bg-white sticky top-0 z-30 p-4 shadow-sm">
+                     <h1 class="text-2xl font-bold text-center">الأقسام</h1>
+                </header>
+                <main class="p-4">
+                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+                        ${categories.map(c => `
+                            <a href="#" class="category-grid-item flex flex-col items-center p-4 bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow" data-category="${c}">
+                                <i class="fa-solid ${categoryIcons[c] || 'fa-tag'} text-4xl text-orange-500 mb-3"></i>
+                                <span class="font-semibold text-center text-sm">${c}</span>
+                            </a>
+                        `).join('')}
+                    </div>
+                </main>
+            `;
+
+            document.querySelectorAll('.category-grid-item').forEach(item => {
+                item.addEventListener('click', e => {
+                    e.preventDefault();
+                    const category = e.currentTarget.dataset.category;
+                    handleCustomerNav('home');
+                    // We need a slight delay to ensure the home page is rendered before we filter
+                    setTimeout(() => {
+                        const searchInput = document.getElementById('public-product-search');
+                        if(searchInput) searchInput.value = ''; // Clear previous search
+                        displayPublicProducts(category);
+                    }, 50);
+                });
+            });
+        }
+        
+        function renderTrackOrderInputPage() {
+            const container = document.getElementById('customer-page-track');
+            container.innerHTML = `
+                 <header class="bg-white sticky top-0 z-30 p-4 shadow-sm">
+                     <h1 class="text-2xl font-bold text-center">تتبع طلبك</h1>
+                </header>
+                <main class="p-4 pt-10">
+                    <div class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-lg text-center">
+                        <i class="fa-solid fa-magnifying-glass-location text-5xl text-orange-500 mb-4"></i>
+                        <h2 class="text-xl font-semibold mb-4">أدخل رابط التتبع الخاص بطلبك</h2>
+                        <form id="track-order-form">
+                             <input type="text" id="tracking-url-input" class="w-full p-3 border rounded-lg mb-4 text-center" placeholder="https://...#track=ORDER_...">
+                             <button type="submit" class="w-full btn-primary bg-orange-500 hover:bg-orange-600">تتبع</button>
+                        </form>
+                        <p class="text-xs text-gray-400 mt-4">يمكنك إيجاد رابط التتبع في رسالة الواتساب التي وصلتك بعد إتمام الطلب.</p>
+                    </div>
+                </main>
+            `;
+            document.getElementById('track-order-form').addEventListener('submit', e => {
+                e.preventDefault();
+                const url = document.getElementById('tracking-url-input').value;
+                try {
+                    const token = new URL(url).hash.substring(1).split('=')[1];
+                    if (token) {
+                        window.location.hash = `track=${token}`;
+                    } else {
+                         showToast('رابط غير صالح', 'error');
+                    }
+                } catch(err) {
+                     showToast('الرجاء إدخال رابط صالح', 'error');
                 }
             });
         }
-
-        function renderCheckoutSidebar() {
-            const container = document.getElementById('checkout-sidebar');
-            if(!container) return;
-
+        
+        function renderCheckoutModal() {
             let subtotal = 0;
             const cartItems = Object.entries(cart).map(([id, qty]) => {
                 const p = db.products.find(prod => prod.id == id);
@@ -474,34 +577,34 @@
                 : `<div class="text-center py-10"><i class="fa-solid fa-cart-arrow-down text-4xl text-gray-300"></i><p class="mt-4 text-gray-500">سلتك فارغة!</p></div>`;
             
             const geminiButtonHtml = cartItems.length > 0 ? `<button type="button" id="gemini-recipe-btn" class="w-full btn-primary bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 py-2 mt-4 text-md">✨ اقترح وصفة بالمنتجات!</button>` : '';
+            
+            const content = `
+                <form id="customer-order-form">
+                    <h3 class="text-xl font-bold mb-4 border-b pb-3">ملخص الطلب</h3>
+                    <div id="cart-items-container-sidebar" class="max-h-60 overflow-y-auto divide-y">${cartItemsHtml}</div>
+                    ${geminiButtonHtml}
+                    <div class="border-t pt-4 mt-4 space-y-2">
+                            <div class="flex justify-between text-gray-600"><span>المجموع الفرعي</span><span>${subtotal.toFixed(3)} د.ك</span></div>
+                            <div class="flex justify-between text-gray-600"><span>كلفة التوصيل</span><span>${shippingFee.toFixed(3)} د.ك</span></div>
+                            <div class="flex justify-between font-bold text-lg mt-2 border-t pt-2"><span>المجموع</span><span>${total.toFixed(3)} د.ك</span></div>
+                    </div>
+                    <div class="mt-6">
+                        <h3 class="text-xl font-bold mb-4 border-b pb-3">تفاصيل التوصيل</h3>
+                            <input type="text" name="customerName" class="w-full p-3 border rounded-lg mb-3" placeholder="الاسم الكامل" required>
+                            <input type="tel" name="customerPhone" class="w-full p-3 border rounded-lg mb-3" placeholder="رقم الهاتف (لاكتساب النقاط)" required>
+                            <input type="text" name="customerAddress" class="w-full p-3 border rounded-lg" placeholder="العنوان بالتفصيل" required>
+                    </div>
+                    <div class="mt-6">
+                        <h3 class="text-lg font-bold mb-2">طرق الدفع المتاحة</h3>
+                        <div class="p-4 border rounded-lg flex justify-between items-center bg-gray-50">
+                            <span class="font-semibold">الدفع عند الاستلام أو كي نت</span>
+                            <img src="https://www.knet.com.kw/images/knet_logo.png" alt="KNET" class="h-6">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full btn-primary bg-orange-500 hover:bg-orange-600 py-3 mt-6 text-lg">إتمام الشراء عبر واتساب</button>
+                </form>`;
 
-            container.innerHTML = `
-                <div class="bg-white rounded-xl shadow-lg p-6 sticky top-24">
-                    <form id="customer-order-form">
-                        <h3 class="text-xl font-bold mb-4 border-b pb-3">ملخص الطلب</h3>
-                        <div id="cart-items-container-sidebar" class="max-h-60 overflow-y-auto divide-y">${cartItemsHtml}</div>
-                        ${geminiButtonHtml}
-                        <div class="border-t pt-4 mt-4 space-y-2">
-                             <div class="flex justify-between text-gray-600"><span>المجموع الفرعي</span><span>${subtotal.toFixed(3)} د.ك</span></div>
-                             <div class="flex justify-between text-gray-600"><span>كلفة التوصيل</span><span>${shippingFee.toFixed(3)} د.ك</span></div>
-                             <div class="flex justify-between font-bold text-lg mt-2 border-t pt-2"><span>المجموع</span><span>${total.toFixed(3)} د.ك</span></div>
-                        </div>
-                        <div class="mt-6">
-                            <h3 class="text-xl font-bold mb-4 border-b pb-3">تفاصيل التوصيل</h3>
-                             <input type="text" name="customerName" class="w-full p-3 border rounded-lg mb-3" placeholder="الاسم الكامل" required>
-                             <input type="tel" name="customerPhone" class="w-full p-3 border rounded-lg mb-3" placeholder="رقم الهاتف (لاكتساب النقاط)" required>
-                             <input type="text" name="customerAddress" class="w-full p-3 border rounded-lg" placeholder="العنوان بالتفصيل" required>
-                        </div>
-                        <div class="mt-6">
-                            <h3 class="text-lg font-bold mb-2">طرق الدفع المتاحة</h3>
-                            <div class="p-4 border rounded-lg flex justify-between items-center bg-gray-50">
-                                <span class="font-semibold">الدفع عند الاستلام أو كي نت</span>
-                                <img src="https://www.knet.com.kw/images/knet_logo.png" alt="KNET" class="h-6">
-                            </div>
-                        </div>
-                        <button type="submit" class="w-full btn-primary bg-orange-500 hover:bg-orange-600 py-3 mt-6 text-lg">إتمام الشراء عبر واتساب</button>
-                    </form>
-                </div>`;
+            openModal('سلة المشتريات', content, 'max-w-lg');
             document.getElementById('customer-order-form').addEventListener('submit', handlePublicOrderSubmit);
             document.querySelector('input[name="customerPhone"]').addEventListener('blur', autoFillCustomerData);
             const recipeBtn = document.getElementById('gemini-recipe-btn');
@@ -509,7 +612,7 @@
                 recipeBtn.addEventListener('click', handleRecipeSuggestion);
             }
         }
-        
+
         async function handleRecipeSuggestion(event) {
             const button = event.target;
             const originalText = button.innerHTML;
@@ -542,12 +645,18 @@
 
         function renderOrderTrackingPage(token) {
             window.addEventListener('storage', handleStorageEvent);
+            // Switch to the main customer view container to show the tracking page
+            document.getElementById('selection-view').style.display = 'none';
+            document.getElementById('driver-portal-view').style.display = 'none';
+            document.getElementById('app-container').style.display = 'none';
             const customerView = document.getElementById('customer-view');
+            customerView.style.display = 'block';
+
             loadDB();
             const order = db.orders.find(o => o.trackingToken === token);
             
             if (!order) { 
-                customerView.innerHTML = `<div class="text-center p-10"><h1 class="text-2xl font-bold">رابط تتبع غير صالح أو منتهي.</h1><a href="#" id="back-to-store" class="text-blue-500 hover:underline mt-4 block">العودة للمتجر</a></div>`; 
+                customerView.innerHTML = `<main class="text-center p-10"><h1 class="text-2xl font-bold">رابط تتبع غير صالح أو منتهي.</h1><a href="#" id="back-to-store" class="text-blue-500 hover:underline mt-4 block">العودة للمتجر</a></main>`; 
                 document.getElementById('back-to-store').addEventListener('click', (e) => { e.preventDefault(); window.location.hash = ''; renderPublicView(); }); 
                 return; 
             }
@@ -572,11 +681,12 @@
             const currentStatusIndex = statuses.indexOf(order.status);
             
             let stepsHtml = '';
-            statuses.forEach((status, index) => {
-                const isCompleted = index < currentStatusIndex;
-                const isActive = index === currentStatusIndex;
+            statuses.forEach((index, i) => {
+                const status = statuses[i];
+                const isCompleted = i < currentStatusIndex;
+                const isActive = i === currentStatusIndex;
                 stepsHtml += `<div class="step-item flex-1 ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}"><div class="step-icon-wrapper"><i class="fa-solid ${statusIcons[status]}"></i></div><p class="step-label">${statusTexts[status]}</p></div>`;
-                if (index < statuses.length - 1) { stepsHtml += `<div class="flex-auto border-t-2 step-connector ${isCompleted ? 'completed' : ''}"></div>`; }
+                if (i < statuses.length - 1) { stepsHtml += `<div class="flex-auto border-t-2 step-connector ${isCompleted ? 'completed' : ''}"></div>`; }
             });
 
             let deliveryInfoHtml = '';
@@ -590,12 +700,17 @@
 
             const orderItemsHtml = order.items.map(item => `<div class="flex justify-between items-center py-2 border-b"><span>${item.name} (x${item.quantity})</span><span class="font-semibold">${(item.price * item.quantity).toFixed(3)} د.ك</span></div>`).join('');
             
+            const mapHtml = (order.status === 'out_for_delivery' && driver && order.location) 
+                ? `<div class="mt-8"><h3 class="font-bold text-lg mb-4 text-center">تتبع السائق المباشر</h3><div id="customer-tracking-map" class="map-container"></div></div>` 
+                : '';
+
             customerView.innerHTML = `
                 <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                     <div class="bg-white p-6 md:p-8 rounded-xl shadow-lg">
                         <div class="text-center mb-8"><img src="${logoUrl}" class="h-16 mx-auto mb-4" alt="Logo"><h1 class="text-3xl font-bold">حالة طلبك</h1><p class="text-gray-500 mt-2">رقم الطلب: <span class="font-mono">#${order.id}</span></p></div>
                         <div class="border rounded-lg p-4 mb-8"><h3 class="font-bold text-lg mb-2">ملخص الطلب</h3>${orderItemsHtml}<div class="flex justify-between items-center pt-2 font-bold text-xl"><span>الإجمالي</span><span>${order.total.toFixed(3)} د.ك</span></div></div>
                         <div class="w-full mb-8"><div class="flex items-center">${stepsHtml}</div></div>
+                        ${mapHtml}
                         <div class="text-center mt-8 bg-gray-50 p-6 rounded-lg">
                             <div class="text-7xl text-blue-500" id="status-icon"><i class="fa-solid ${statusIcons[order.status]}"></i></div>
                             <p class="font-bold text-xl mt-4" id="status-text">${statusTexts[order.status]}</p>
@@ -604,10 +719,14 @@
                         ${ratingUI}
                     </div>
                 </main>`;
+            
+            if (order.status === 'out_for_delivery' && driver && order.location) {
+                setTimeout(() => initCustomerTrackingMap(order), 100);
+            }
 
             const chatBtn = document.getElementById('open-chat-btn');
             if (chatBtn) {
-                chatBtn.addEventListener('click', e => openChatModal(Number(e.target.dataset.orderId), 'customer'));
+                chatBtn.addEventListener('click', e => openChatModal(Number(e.currentTarget.dataset.orderId), 'customer'));
             }
 
             if (order.status === 'delivered' && !order.rating) {
@@ -641,23 +760,17 @@
             }
         }
         
-        function renderCategoryFilters() {
-            const container = document.querySelector('.category-filters-container'); if(!container) return;
-            const categories = [...new Set(getDB().products.map(p => p.category))];
-            container.innerHTML = `<button class="category-filter-btn active bg-orange-500 text-white py-2 px-4 rounded-full flex-shrink-0" data-category="all">الكل</button>` + categories.map(c => `<button class="category-filter-btn bg-white py-2 px-4 rounded-full shadow-sm flex-shrink-0" data-category="${c}">${c}</button>`).join('');
-            document.querySelectorAll('.category-filter-btn').forEach(btn => btn.addEventListener('click', e => { document.querySelectorAll('.category-filter-btn').forEach(b => b.classList.remove('active', 'bg-orange-500', 'text-white')); e.target.classList.add('active', 'bg-orange-500', 'text-white'); displayPublicProducts(); }));
-        }
-
-        function displayPublicProducts() {
+        function displayPublicProducts(categoryFilter = null) {
             const productList = document.getElementById('public-products-list'); if(!productList) return;
-            const searchTerm = document.getElementById('public-product-search').value.toLowerCase();
-            const sortOrder = document.getElementById('public-product-sort').value;
-            const activeCategory = document.querySelector('.category-filter-btn.active')?.dataset.category || 'all';
+            const searchTerm = document.getElementById('public-product-search')?.value.toLowerCase() || '';
+            const sortOrder = document.getElementById('public-product-sort')?.value || 'default';
+            const activeCategory = categoryFilter || 'all';
+
             let products = getDB().products.filter(p => p.name.toLowerCase().includes(searchTerm) && (activeCategory === 'all' || p.category === activeCategory) && !p.isFeatured);
             if (sortOrder === 'price-asc') products.sort((a, b) => getProductPrice(a) - getProductPrice(b));
             if (sortOrder === 'price-desc') products.sort((a, b) => getProductPrice(b) - getProductPrice(a));
             if (sortOrder === 'name-asc') products.sort((a, b) => a.name.localeCompare(b.name));
-            productList.innerHTML = products.length > 0 ? products.map(p => createProductCard(p)).join('') : `<p class="col-span-full text-center p-8 text-gray-500">لا توجد منتجات.</p>`;
+            productList.innerHTML = products.length > 0 ? products.map(p => createProductCard(p)).join('') : `<p class="col-span-full text-center p-8 text-gray-500">لا توجد منتجات تطابق بحثك.</p>`;
         }
         
         function getProductPrice(product) { const promo = (db.promotions || []).find(p => (p.productIds || []).includes(product.id)); return promo ? product.price * (1 - promo.discount) : product.price; }
@@ -686,6 +799,15 @@
                     </div>
                 </div>`;
         }
+        
+        function updateCartButton() {
+            const fabCount = document.getElementById('cart-fab-count');
+            if (fabCount) {
+                const totalItems = Object.values(cart).reduce((sum, qty) => sum + qty, 0);
+                fabCount.textContent = totalItems;
+                fabCount.style.display = totalItems > 0 ? 'flex' : 'none';
+            }
+        }
 
         function updateCart(productId, change) {
             const product = getDB().products.find(p => p.id == productId); if(!product) return;
@@ -695,7 +817,7 @@
             if (currentQty > 0) cart[productId] = currentQty; else delete cart[productId];
             saveCart(); 
             
-            renderCheckoutSidebar();
+            updateCartButton();
             
             const card = document.querySelector(`.js-product-card[data-product-id="${productId}"]`); if (!card) return;
             const quantityInCart = cart[productId] || 0;
@@ -722,11 +844,13 @@
             let customer = db.customers.find(c => c.phone === phone); if (!customer) { db.counters.customer++; customer = { id: db.counters.customer, name: customerName, phone, address, points: 0, tags: ['New'] }; db.customers.push(customer); } else { customer.address = address; }
             customer.points = (customer.points || 0) + Math.floor(total * (db.settings.pointsPerKWD || 100));
             const trackingToken = `ORDER_${orderId}_${Math.random().toString(36).substr(2, 6)}`;
-            const order = { id: orderId, trackingToken, customerId: customer.id, customerName, customerAddress: address, customerPhone: phone, timestamp: new Date().toISOString(), status: 'pending', items: orderItems, total, driverId: null, rating: null, paymentMethod: 'cash' };
+            // Geocode address to get coordinates (mock for now, would need Geocoding API)
+            const location = { lat: 29.378586 + (Math.random() - 0.5) * 0.1, lng: 47.990341 + (Math.random() - 0.5) * 0.1 };
+            const order = { id: orderId, trackingToken, customerId: customer.id, customerName, customerAddress: address, customerPhone: phone, timestamp: new Date().toISOString(), status: 'pending', items: orderItems, total, driverId: null, rating: null, paymentMethod: 'cash', location: location };
             db.orders.push(order); saveDB();
             let message = `*طلب جديد من ${db.settings.storeName}* 🛍️\n\n*رقم الطلب:* ${orderId}\n*العميل:* ${customerName}\n*العنوان:* ${address}\n*الهاتف:* ${phone}\n\n*لمتابعة طلبك:* ${window.location.origin}${window.location.pathname}#track=${trackingToken}\n\n*--- الطلبات ---*\n${orderItems.map(i => `- ${i.name} (x${i.quantity})`).join('\n')}\n\n*المجموع:* ${total.toFixed(3)} د.ك`;
             window.open(`https://api.whatsapp.com/send?phone=${db.settings.whatsappNumber}&text=${encodeURIComponent(message)}`, '_blank');
-            cart = {}; saveCart();
+            cart = {}; saveCart(); closeModal();
             window.location.hash = `track=${trackingToken}`;
         }
         
@@ -754,6 +878,7 @@
 
             const ordersHtml = assignedOrders.length > 0 ? assignedOrders.map(o => `
                 <div class="bg-white rounded-xl shadow-md overflow-hidden mb-4">
+                     <div id="driver-map-${o.id}" class="map-container"></div>
                     <div class="p-4">
                         <div class="flex justify-between items-start">
                             <div>
@@ -767,7 +892,7 @@
                             </div>
                         </div>
                         <div class="mt-4 pt-4 border-t flex gap-2">
-                            <a href="https://maps.google.com/?q=${encodeURIComponent(o.customerAddress)}" target="_blank" class="flex-1 text-center btn-primary bg-blue-500 hover:bg-blue-600 btn-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>ابدأ الملاحة</a>
+                             <a href="https://www.google.com/maps/dir/?api=1&destination=${o.location.lat},${o.location.lng}" target="_blank" class="flex-1 text-center btn-primary bg-blue-500 hover:bg-blue-600 btn-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>ابدأ الملاحة</a>
                             <button class="open-chat-btn flex-1 text-center btn-primary bg-sky-500 hover:bg-sky-600 btn-sm" data-order-id="${o.id}"><i class="fa-solid fa-comments mr-2"></i>محادثة</button>
                         </div>
                         <div class="mt-2">
@@ -779,9 +904,12 @@
             portalView.innerHTML = `
                 <header class="bg-white shadow-md sticky top-0 z-10">
                     <div class="p-4 flex justify-between items-center">
-                        <div>
-                            <p class="text-sm text-gray-500">مرحباً بك</p>
-                            <h1 class="font-bold text-2xl">${driver.name}</h1>
+                        <div class="flex items-center gap-4">
+                            <img src="${logoUrl}" alt="Logo" class="h-10">
+                            <div>
+                                <p class="text-sm text-gray-500">مرحباً بك</p>
+                                <h1 class="font-bold text-2xl">${driver.name}</h1>
+                            </div>
                         </div>
                         <div class="flex items-center gap-4">
                             <div class="relative">
@@ -804,16 +932,23 @@
                 </header>
                 <main class="p-4">
                     <h2 class="text-xl font-bold mb-4">الطلبات الحالية (${assignedOrders.length})</h2>
-                    ${ordersHtml}
+                    <div id="driver-orders-list">${ordersHtml}</div>
                 </main>`;
             
+            // Initialize maps for each order card
+            setTimeout(() => {
+                assignedOrders.forEach(o => initDriverOrderMap(o));
+            }, 100);
+
             document.getElementById('driver-logout-btn').addEventListener('click', logout);
             
             document.querySelectorAll('.mark-delivered-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const orderId = Number(e.target.dataset.orderId);
+                    const orderId = Number(e.currentTarget.dataset.orderId);
                     const order = db.orders.find(o => o.id === orderId);
                     if (order) {
+                        if(driverIntervals[orderId]) clearInterval(driverIntervals[orderId]);
+                        delete driverIntervals[orderId];
                         order.status = 'delivered';
                         saveDB();
                         localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() }));
@@ -823,7 +958,7 @@
                 });
             });
             document.querySelectorAll('.open-chat-btn').forEach(btn => {
-                btn.addEventListener('click', e => openChatModal(Number(e.target.dataset.orderId), 'driver'));
+                btn.addEventListener('click', e => openChatModal(Number(e.currentTarget.dataset.orderId), 'driver'));
             });
         }
 
@@ -846,7 +981,7 @@
                             badge.textContent = newOrders;
                             badge.classList.remove('hidden');
                         }
-                        setTimeout(() => bell.classList.remove('active'), 800);
+                        setTimeout(() => bell?.classList.remove('active'), 800);
                     }
                     renderDriverPortal(currentUser.id);
                 }
@@ -871,15 +1006,14 @@
             }
         }
 
-        // ----------------- CHAT FUNCTIONS (NEW) -----------------
+        // ----------------- CHAT FUNCTIONS -----------------
         function openChatModal(orderId, userType) {
             const order = db.orders.find(o => o.id === orderId);
             const otherPartyName = userType === 'customer' ? (db.drivers.find(d => d.id === order.driverId)?.name || 'السائق') : order.customerName;
             const content = `
                 <div id="chat-modal-content" data-order-id="${orderId}" class="flex flex-col h-[70vh]">
                     <div id="chat-messages" class="flex-grow overflow-y-auto p-4 bg-gray-100 rounded-t-lg space-y-4">
-                        <!-- Messages will be rendered here -->
-                    </div>
+                        </div>
                     <form id="chat-form" class="p-4 border-t flex gap-2">
                         <input id="chat-input" class="flex-grow p-2 border rounded-full" placeholder="اكتب رسالتك..." autocomplete="off">
                         <button type="submit" class="btn-primary rounded-full !p-3 h-12 w-12 flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button>
@@ -927,8 +1061,160 @@
             renderChatMessages(orderId, sender);
         }
 
+        // ----------------- MAP FUNCTIONS (NEW) -----------------
+        function initAdminMap() {
+            const mapContainer = document.getElementById('dashboard-map');
+            if (!mapContainer || !google) return;
+
+            const map = new google.maps.Map(mapContainer, {
+                zoom: 10,
+                center: db.settings.storeLocation || { lat: 29.3759, lng: 47.9774 }, // Kuwait center
+                mapId: 'BAQALTAK_ADMIN_MAP'
+            });
+
+            // Add store location marker
+            new google.maps.Marker({
+                position: db.settings.storeLocation,
+                map,
+                title: db.settings.storeName,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 8,
+                    fillColor: "#3b82f6",
+                    fillOpacity: 1,
+                    strokeWeight: 2,
+                    strokeColor: "white",
+                },
+            });
+
+            const activeOrders = db.orders.filter(o => o.status === 'out_for_delivery');
+            activeOrders.forEach(order => {
+                if (order.location) {
+                     new google.maps.Marker({
+                        position: order.location,
+                        map,
+                        title: `طلب #${order.id} - ${order.customerName}`,
+                        icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                    });
+                }
+            });
+
+            const drivers = db.drivers;
+            drivers.forEach(driver => {
+                if (driver.location) {
+                    new google.maps.Marker({
+                        position: driver.location,
+                        map,
+                        title: `السائق: ${driver.name}`,
+                        icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                    });
+                }
+            });
+        }
+
+        function initDriverOrderMap(order) {
+            const mapContainer = document.getElementById(`driver-map-${order.id}`);
+            const driver = db.drivers.find(d => d.id === order.driverId);
+            if (!mapContainer || !google || !driver || !driver.location || !order.location) return;
+
+            const map = new google.maps.Map(mapContainer, {
+                zoom: 12,
+                center: driver.location,
+                mapId: `DRIVER_MAP_${order.id}`
+            });
+
+            const driverMarker = new google.maps.Marker({ position: driver.location, map, title: "موقعك الحالي" });
+            const customerMarker = new google.maps.Marker({ position: order.location, map, title: `موقع العميل: ${order.customerName}` });
+
+            const bounds = new google.maps.LatLngBounds();
+            bounds.extend(driverMarker.getPosition());
+            bounds.extend(customerMarker.getPosition());
+            map.fitBounds(bounds);
+
+            const directionsService = new google.maps.DirectionsService();
+            const directionsRenderer = new google.maps.DirectionsRenderer({ suppressMarkers: true });
+            directionsRenderer.setMap(map);
+
+            directionsService.route({
+                origin: driver.location,
+                destination: order.location,
+                travelMode: 'DRIVING'
+            }, (response, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(response);
+                } else {
+                    console.warn('Directions request failed due to ' + status);
+                }
+            });
+        }
+        
+        function initCustomerTrackingMap(order) {
+            const mapContainer = document.getElementById('customer-tracking-map');
+            const driver = db.drivers.find(d => d.id === order.driverId);
+            if (!mapContainer || !google || !driver || !driver.location || !order.location) return;
+
+            // Clear any existing simulation interval for this order
+            if (driverIntervals[order.id]) clearInterval(driverIntervals[order.id]);
+
+            const map = new google.maps.Map(mapContainer, {
+                zoom: 12,
+                center: order.location,
+                mapId: `CUSTOMER_TRACKING_MAP_${order.id}`
+            });
+
+            const customerMarker = new google.maps.Marker({
+                position: order.location,
+                map,
+                title: "موقعك",
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 8,
+                    fillColor: "#ea580c",
+                    fillOpacity: 1,
+                    strokeWeight: 2,
+                    strokeColor: "white",
+                },
+            });
+
+            const driverMarker = new google.maps.Marker({
+                position: driver.location,
+                map,
+                title: `السائق: ${driver.name}`,
+                icon: {
+                    url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png",
+                    scaledSize: new google.maps.Size(40, 40),
+                }
+            });
+            
+            // Simulation logic
+            const startPoint = new google.maps.LatLng(driver.location.lat, driver.location.lng);
+            const endPoint = new google.maps.LatLng(order.location.lat, order.location.lng);
+            let step = 0;
+            const numSteps = 200; // More steps for smoother animation
+            const timePerStep = 1000; // 1 second per step
+
+            driverIntervals[order.id] = setInterval(() => {
+                step++;
+                if (step > numSteps) {
+                    clearInterval(driverIntervals[order.id]);
+                    delete driverIntervals[order.id];
+                    return;
+                }
+                const newPos = google.maps.geometry.spherical.interpolate(startPoint, endPoint, step / numSteps);
+                driverMarker.setPosition(newPos);
+                 // Update driver's location in DB for persistence (optional)
+                driver.location = { lat: newPos.lat(), lng: newPos.lng() };
+                // Don't saveDB here to avoid performance issues, maybe save less frequently
+            }, timePerStep);
+        }
+
         // ----------------- ADMIN FUNCTIONS -----------------
         function handleHashChange() {
+            // Clear all map intervals and instances when view changes
+            Object.values(driverIntervals).forEach(clearInterval);
+            driverIntervals = {};
+            mapInstances = {};
+
             if (!currentUser) { renderPublicView(); return; }
             
             const hash = window.location.hash.substring(1) || (currentUser.type === 'admin' ? 'dashboard' : 'driver_portal');
@@ -968,14 +1254,57 @@
             const lowStockProducts = db.products.filter(p => p.stock > 0 && p.stock <= (p.lowStockThreshold || 5));
 
             const createOrderCard = (order) => `<div class="order-card border rounded-lg p-4 shadow-sm mb-4"><div class="flex justify-between items-start mb-2"><div><p class="font-bold text-lg">طلب #${order.id}</p><p class="text-sm text-gray-500">${order.customerName}</p></div><p class="text-xs text-gray-400">${timeAgo(order.timestamp)}</p></div><p class="text-sm my-2">المنتجات: ${order.items.length} أصناف</p><p class="font-bold text-lg text-green-600 mb-4">${order.total.toFixed(3)} د.ك</p><div class="flex gap-2"><button class="view-order-btn text-sm bg-gray-200 hover:bg-gray-300 font-bold py-2 px-4 rounded-lg flex-1" data-id="${order.id}">عرض التفاصيل</button>${order.status === 'pending' ? `<button class="start-processing-btn text-sm bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex-1" data-id="${order.id}">بدء التجهيز</button>` : ''}${order.status === 'in_progress' ? `<button class="assign-driver-btn text-sm bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg flex-1" data-id="${order.id}">تعيين سائق</button>` : ''}</div></div>`;
-            
             const lowStockHtml = lowStockProducts.length > 0 ? lowStockProducts.map(p => `<div class="flex justify-between items-center p-2 border-b"><span class="font-semibold">${p.name}</span><span class="font-bold text-red-500">${p.stock}</span></div>`).join('') : '<p class="text-center text-gray-400 p-4">المخزون بحالة جيدة.</p>';
                 
-            const content = `<div class="grid grid-cols-1 lg:grid-cols-3 gap-6"><div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6"><div class="order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between">طلبات جديدة <span class="bg-yellow-200 text-yellow-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded-full">${pendingOrders.length}</span></h3><div class="space-y-3 max-h-[60vh] overflow-y-auto">${pendingOrders.map(createOrderCard).join('') || '<p class="text-center text-gray-400 p-4">لا توجد طلبات جديدة</p>'}</div></div><div class="order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between">قيد التجهيز <span class="bg-blue-200 text-blue-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded-full">${inProgressOrders.length}</span></h3><div class="space-y-3 max-h-[60vh] overflow-y-auto">${inProgressOrders.map(createOrderCard).join('') || '<p class="text-center text-gray-400 p-4">لا توجد طلبات قيد التجهيز</p>'}</div></div></div><div class="lg:col-span-1 order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between"><i class="fa-solid fa-triangle-exclamation text-yellow-500 mr-2"></i>تنبيهات المخزون</h3><div class="space-y-2 max-h-[60vh] overflow-y-auto">${lowStockHtml}</div></div></div>`;
+            const content = `
+                <div class="mb-4 border-b">
+                    <nav class="flex -mb-px" id="dashboard-tabs">
+                        <a href="#orders-view" class="tab-link active-tab whitespace-nowrap py-4 px-6 border-b-2 font-medium text-lg">لوحة الطلبات</a>
+                        <a href="#map-view" class="tab-link whitespace-nowrap py-4 px-6 border-b-2 font-medium text-lg">الخريطة الحية</a>
+                    </nav>
+                </div>
+                <div id="dashboard-content">
+                    <div id="orders-view" class="tab-content">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between">طلبات جديدة <span class="bg-yellow-200 text-yellow-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded-full">${pendingOrders.length}</span></h3><div class="space-y-3 max-h-[60vh] overflow-y-auto">${pendingOrders.map(createOrderCard).join('') || '<p class="text-center text-gray-400 p-4">لا توجد طلبات جديدة</p>'}</div></div>
+                                <div class="order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between">قيد التجهيز <span class="bg-blue-200 text-blue-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded-full">${inProgressOrders.length}</span></h3><div class="space-y-3 max-h-[60vh] overflow-y-auto">${inProgressOrders.map(createOrderCard).join('') || '<p class="text-center text-gray-400 p-4">لا توجد طلبات قيد التجهيز</p>'}</div></div>
+                            </div>
+                            <div class="lg:col-span-1 order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between"><i class="fa-solid fa-triangle-exclamation text-yellow-500 mr-2"></i>تنبيهات المخزون</h3><div class="space-y-2 max-h-[60vh] overflow-y-auto">${lowStockHtml}</div></div>
+                        </div>
+                    </div>
+                    <div id="map-view" class="tab-content hidden">
+                        <div id="dashboard-map" class="dashboard-map-container rounded-lg shadow-md"></div>
+                    </div>
+                </div>
+                <style>
+                    .tab-link { color: #6b7280; border-color: transparent; }
+                    .tab-link.active-tab { color: #3b82f6; border-color: #3b82f6; }
+                    body.dark-mode .tab-link { color: #9ca3af; }
+                    body.dark-mode .tab-link.active-tab { color: #60a5fa; border-color: #60a5fa; }
+                </style>
+            `;
             renderPage('page-dashboard', content, () => {
                 document.querySelectorAll('.view-order-btn').forEach(btn => btn.addEventListener('click', e => handleViewOrder(Number(btn.dataset.id))));
                 document.querySelectorAll('.start-processing-btn').forEach(btn => btn.addEventListener('click', e => { const order = db.orders.find(o => o.id === Number(btn.dataset.id)); if(order) { order.status = 'in_progress'; saveDB(); localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() })); renderDashboard(); } }));
                 document.querySelectorAll('.assign-driver-btn').forEach(btn => btn.addEventListener('click', e => openDeliveryModal(Number(btn.dataset.id))));
+                
+                // Tab logic
+                document.querySelectorAll('#dashboard-tabs .tab-link').forEach(tab => {
+                    tab.addEventListener('click', e => {
+                        e.preventDefault();
+                        document.querySelectorAll('#dashboard-tabs .tab-link').forEach(t => t.classList.remove('active-tab'));
+                        e.target.classList.add('active-tab');
+
+                        document.querySelectorAll('#dashboard-content .tab-content').forEach(c => c.classList.add('hidden'));
+                        const targetViewId = e.target.getAttribute('href').substring(1);
+                        document.getElementById(targetViewId).classList.remove('hidden');
+
+                        if (targetViewId === 'map-view') {
+                            setTimeout(initAdminMap, 50); // Delay to ensure container is visible
+                        }
+                    });
+                });
             });
         }
 
@@ -987,9 +1316,12 @@
             document.getElementById('delivery-form').addEventListener('submit', e => {
                 e.preventDefault();
                 const driverId = Number(e.target.driverId.value);
-                if (!driverId) { showToast('الرجاء اختيار سائق', 'error'); return; }
+                const driver = db.drivers.find(d => d.id === driverId);
+                if (!driver) { showToast('الرجاء اختيار سائق', 'error'); return; }
                 order.status = 'out_for_delivery';
                 order.driverId = driverId;
+                // Simulate driver starting from store location if not already set
+                if (!driver.location) driver.location = db.settings.storeLocation;
                 saveDB();
                 localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() }));
                 renderDashboard();
@@ -1030,7 +1362,6 @@
         function renderAnalytics() { const content = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white p-4 rounded-lg shadow-lg"><h3 class="font-bold text-lg mb-4">مبيعات آخر 7 أيام</h3><canvas id="salesChart"></canvas></div><div class="bg-white p-4 rounded-lg shadow-lg"><h3 class="font-bold text-lg mb-4">المنتجات الأكثر مبيعًا</h3><div id="topProductsList"></div></div></div>`; renderPage('page-analytics', content, () => { const salesCtx = document.getElementById('salesChart')?.getContext('2d'); if(salesCtx) { const salesData = { labels: [], datasets: [{ label: 'المبيعات (د.ك)', data: [], backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: '#3b82f6', borderWidth: 1 }] }; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); salesData.labels.push(d.toLocaleDateString('ar-EG', { weekday: 'short' })); const dailySales = db.orders.filter(o => new Date(o.timestamp).toDateString() === d.toDateString() && o.status === 'delivered').reduce((sum, o) => sum + o.total, 0); salesData.datasets[0].data.push(dailySales); } new Chart(salesCtx, { type: 'bar', data: salesData, options: { scales: { y: { beginAtZero: true } } } }); } const productSales = {}; db.orders.forEach(o => o.items.forEach(i => productSales[i.name] = (productSales[i.name] || 0) + i.quantity)); const topProducts = Object.entries(productSales).sort((a,b) => b[1] - a[1]).slice(0,5); document.getElementById('topProductsList').innerHTML = topProducts.map(([name, qty]) => `<div class="flex justify-between items-center p-2 border-b"><span class="font-semibold">${name}</span><span class="font-bold">${qty}</span></div>`).join(''); }); }
         function renderSettings() { const settings = getDB().settings; const content = `<div class="space-y-8 max-w-3xl mx-auto"><div class="bg-white p-6 rounded-lg shadow-lg"><h3 class="text-xl font-bold mb-4 border-b pb-2">إعدادات المتجر</h3><form id="store-settings-form" class="space-y-4"><label class="block">اسم المتجر</label> <input name="storeName" type="text" value="${settings.storeName}" class="w-full p-3 border rounded-lg"><label class="block">رقم الواتساب</label> <input name="whatsappNumber" type="text" value="${settings.whatsappNumber}" class="w-full p-3 border rounded-lg"><label class="block">رسوم التوصيل (د.ك)</label> <input name="shippingFee" type="number" step="0.001" value="${settings.shippingFee}" class="w-full p-3 border rounded-lg"><label class="block">النقاط لكل دينار</label> <input name="pointsPerKWD" type="number" value="${settings.pointsPerKWD}" class="w-full p-3 border rounded-lg"><button type="submit" class="btn-primary">حفظ الإعدادات</button></form></div><div class="bg-white p-6 rounded-lg shadow-lg"><h3 class="text-xl font-bold mb-4 border-b pb-2">البيانات</h3><div class="flex gap-4"><button id="backup-btn" class="flex-1 btn-primary bg-blue-600">نسخ احتياطي</button><button id="restore-btn" class="flex-1 btn-primary bg-green-600">استعادة نسخة</button><input type="file" id="restore-input" class="hidden" accept=".json"></div></div></div>`; renderPage('page-settings', content, () => { document.getElementById('store-settings-form').addEventListener('submit', (e) => { e.preventDefault(); db.settings.storeName = e.target.storeName.value; db.settings.whatsappNumber = e.target.whatsappNumber.value; db.settings.shippingFee = Number(e.target.shippingFee.value); db.settings.pointsPerKWD = Number(e.target.pointsPerKWD.value); saveDB(); showToast('تم حفظ الإعدادات بنجاح.'); }); document.getElementById('backup-btn').addEventListener('click', () => { const dataStr = JSON.stringify(getDB()); const blob = new Blob([dataStr], {type: "application/json"}); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'baqaltak_backup.json'; link.click(); URL.revokeObjectURL(url); }); document.getElementById('restore-btn').addEventListener('click', () => document.getElementById('restore-input').click()); document.getElementById('restore-input').addEventListener('change', (e) => { const file = e.target.files[0]; if(!file || !confirm('سيتم استبدال كل البيانات الحالية.')) return; const reader = new FileReader(); reader.onload = (event) => { try { db = JSON.parse(event.target.result); saveDB(); showToast('تم الاستعادة بنجاح!'); location.reload(); } catch(err) { showToast('ملف غير صالح.', 'error'); }}; reader.readAsText(file); }); }); }
         
-        // --- New Admin Pages ---
         function renderDrivers() {
             const drivers = db.drivers;
             const content = `
@@ -1063,7 +1394,7 @@
             document.getElementById('driver-form').addEventListener('submit', e => {
                 e.preventDefault();
                 const data = new FormData(e.target);
-                const driverData = { name: data.get('name'), phone: data.get('phone'), pin: data.get('pin') };
+                const driverData = { name: data.get('name'), phone: data.get('phone'), pin: data.get('pin'), location: d.location || db.settings.storeLocation }; // Assign store location on creation
                 if (isEdit) {
                     Object.assign(db.drivers.find(dr => dr.id === id), driverData);
                 } else {
@@ -1095,9 +1426,7 @@
             
             const selectionView = document.getElementById('selection-view');
             const customerView = document.getElementById('customer-view');
-            const driverPortalView = document.getElementById('driver-portal-view');
             const passwordOverlay = document.getElementById('password-overlay');
-            const appContainer = document.getElementById('app-container');
 
             const themeToggle = document.getElementById('theme-toggle-admin');
             const setTheme = (theme) => { 
@@ -1155,4 +1484,4 @@
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
-</ht
+</html>
