@@ -15,6 +15,9 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+    
+    <!-- Google Maps API Script -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places,geometry"></script>
 
 
     <style>
@@ -173,6 +176,7 @@
         const logoUrl = "https://d.top4top.io/p_3489e11m01.png";
         let currentUser = null; // Can be 'admin' or 'driver'
         let cart = {};
+        let driverIntervals = {}; // To store simulation intervals
         
         // ----------------- GEMINI API FUNCTION -----------------
         async function callGemini(prompt, buttonElement) {
@@ -257,18 +261,18 @@
                     { id: 31, name: 'أكياس قمامة (رول)', description: 'رول أكياس قمامة حجم وسط.', sku: 'HH001', category: 'أدوات منزلية', price: 0.300, stock: 100, lowStockThreshold: 20, isFeatured: false, iconClass: 'fa-solid fa-trash' },
                     { id: 32, name: 'مناديل ورقية (علبة)', description: 'علبة مناديل ورقية ناعمة.', sku: 'HH002', category: 'أدوات منزلية', price: 0.150, stock: 200, lowStockThreshold: 40, isFeatured: false, iconClass: 'fa-solid fa-box' },
                 ],
-                customers: [{id: 1, name: 'خالد المطيري', phone: '96567734409', address: 'المنطقة العاشرة، قطعة 1، شارع 2', points: 150, notes: 'يفضل الدفع كاش'}], 
+                customers: [{id: 1, name: 'خالد المطيري', phone: '96567734409', address: 'المنطقة العاشرة، قطعة 1، شارع 2', points: 150, notes: 'يفضل الدفع كاش', location: { lat: 29.378586, lng: 47.990341 } }], 
                 orders: [
-                    {id: 1, trackingToken: 'ORDER_1_abcdef', customerId: 1, customerName: "خالد المطيري", customerAddress: "المنطقة العاشرة", customerPhone: "96567734409", timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), status: 'delivered', items: [{productId: 1, name: 'تفاح أحمر (كيلو)', quantity: 2, price: 0.750}], total: 2.000, driverId: 1, rating: { driver: 5, comment: 'توصيل سريع' }, paymentMethod: 'cash' },
-                    {id: 2, trackingToken: 'ORDER_2_ghijk', customerId: 1, customerName: "خالد المطيري", customerAddress: "المنطقة العاشرة", customerPhone: "96567734409", timestamp: new Date().toISOString(), status: 'out_for_delivery', items: [{productId: 2, name: 'خبز لبناني (كيس)', quantity: 4, price: 0.100}], total: 0.900, driverId: 1, paymentMethod: 'online' },
+                    {id: 1, trackingToken: 'ORDER_1_abcdef', customerId: 1, customerName: "خالد المطيري", customerAddress: "المنطقة العاشرة", customerPhone: "96567734409", timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), status: 'delivered', items: [{productId: 1, name: 'تفاح أحمر (كيلو)', quantity: 2, price: 0.750}], total: 2.000, driverId: 1, rating: { driver: 5, comment: 'توصيل سريع' }, paymentMethod: 'cash', location: { lat: 29.378586, lng: 47.990341 } },
+                    {id: 2, trackingToken: 'ORDER_2_ghijk', customerId: 1, customerName: "خالد المطيري", customerAddress: "المنطقة العاشرة", customerPhone: "96567734409", timestamp: new Date().toISOString(), status: 'out_for_delivery', items: [{productId: 2, name: 'خبز لبناني (كيس)', quantity: 4, price: 0.100}], total: 0.900, driverId: 1, paymentMethod: 'online', location: { lat: 29.378586, lng: 47.990341 } },
                 ],
                 promotions: [{id: 1, name: 'عرض اليوم الوطني', productIds: [1], discount: 0.1}],
                 expenses: [{id: 1, date: new Date().toISOString().slice(0,10), description: 'إيجار المحل', amount: 250.000, category: 'مصاريف ثابتة'}],
                 users: [{ id: 1, username: 'admin', password: '123', name: 'المدير العام' }],
-                drivers: [{ id: 1, name: 'محمد علي', phone: '96511112222', pin: '1234' }],
+                drivers: [{ id: 1, name: 'محمد علي', phone: '96511112222', pin: '1234', location: { lat: 29.3758, lng: 47.9832 } }],
                 returns: [],
                 chats: {},
-                settings: { storeName: 'بقالتك', whatsappNumber: '96567734409', pointsPerKWD: 100, shippingFee: 0.500 },
+                settings: { storeName: 'بقالتك', whatsappNumber: '96567734409', pointsPerKWD: 100, shippingFee: 0.500, storeLocation: { lat: 29.3696, lng: 47.9783 } },
                 counters: { product: 32, customer: 1, order: 2, user: 1, promotion: 1, expense: 1, driver: 1, return: 0 }
             };
             if (data) { try { db = JSON.parse(data); } catch (e) { db = defaultDB; } } else { db = defaultDB; }
@@ -287,7 +291,7 @@
         // ----------------- UTILITY & AUTH FUNCTIONS -----------------
         function login(username, password) { const user = getDB().users.find(u => u.username === username && u.password === password); if (user) { currentUser = { ...user, type: 'admin' }; sessionStorage.setItem('currentUser', JSON.stringify(currentUser)); return true; } return false; }
         function driverLogin(phone, pin) { const driver = getDB().drivers.find(d => d.phone === phone && d.pin === pin); if (driver) { currentUser = { ...driver, type: 'driver' }; sessionStorage.setItem('currentUser', JSON.stringify(currentUser)); return true; } return false; }
-        function logout() { currentUser = null; sessionStorage.removeItem('currentUser'); window.location.hash = ''; window.location.reload(); }
+        function logout() { Object.values(driverIntervals).forEach(clearInterval); driverIntervals = {}; currentUser = null; sessionStorage.removeItem('currentUser'); window.location.hash = ''; window.location.reload(); }
         function showToast(message, type = 'success') { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = `p-4 rounded-lg shadow-lg text-white font-bold ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`; t.textContent = message; c.prepend(t); setTimeout(() => t.remove(), 4000); }
         function openModal(title, content, modalClasses = 'max-w-2xl') { const mC = document.getElementById('modal-container'); mC.innerHTML = `<div class="modal fixed inset-0 bg-black bg-opacity-50" style="display:flex; align-items:center; justify-content:center; z-index: 100;"><div class="modal-content ${modalClasses} w-full m-4 p-6 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center mb-4 border-b pb-2 no-print"><h2 class="text-2xl font-bold">${title}</h2><button class="close-modal-btn text-3xl">&times;</button></div><div>${content}</div></div></div>`; mC.querySelector('.close-modal-btn').addEventListener('click', () => mC.innerHTML = ''); }
         function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
