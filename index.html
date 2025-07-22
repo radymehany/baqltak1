@@ -7,7 +7,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -16,7 +16,8 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_Maps_API_KEY&libraries=places,geometry"></script>
+    <!-- Google Maps API Script - REPLACE 'YOUR_GOOGLE_MAPS_API_KEY' -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places,geometry"></script>
 
 
     <style>
@@ -107,6 +108,7 @@
 </head>
 <body class="light-mode">
     <div id="root-container">
+        <!-- SELECTION VIEW -->
         <div id="selection-view" class="view flex flex-col items-center justify-center h-screen p-4">
             <div class="p-8 md:p-12 rounded-lg shadow-2xl text-center w-full max-w-md bg-white">
                 <img id="logo-selection" src="" alt="Logo" class="max-w-[180px] h-auto mx-auto mb-6">
@@ -119,8 +121,10 @@
             </div>
         </div>
         
+        <!-- PASSWORD OVERLAY -->
         <div id="password-overlay" class="view fixed inset-0 bg-gray-900 bg-opacity-75 flex-col items-center justify-center z-50 p-4"></div>
         
+        <!-- ADMIN APP CONTAINER -->
         <div id="app-container" class="view">
             <div class="relative min-h-screen md:flex">
                 <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden md:hidden"></div>
@@ -167,8 +171,10 @@
             </div>
         </div>
         
+        <!-- CUSTOMER VIEW -->
         <div id="customer-view" class="view customer-view-bg min-h-screen pb-24"></div>
 
+        <!-- DRIVER PORTAL VIEW -->
         <div id="driver-portal-view" class="view portal-bg min-h-screen"></div>
 
     </div>
@@ -194,7 +200,7 @@
                 buttonElement.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i> جاري التفكير...`;
             }
             const apiKey = ""; 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
             const payload = { contents: [{ parts: [{ text: prompt }] }] };
             try {
                 const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -397,16 +403,19 @@
             const customerView = document.getElementById('customer-view');
             customerView.innerHTML = `
                 <div id="customer-main-content">
+                    <!-- Pages will be injected here -->
                     <div id="customer-page-home" class="customer-page"></div>
                     <div id="customer-page-categories" class="customer-page"></div>
                     <div id="customer-page-track" class="customer-page"></div>
                 </div>
 
+                <!-- Floating Cart Button -->
                 <button id="cart-fab" class="fixed bottom-20 right-4 bg-orange-500 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-lg text-2xl z-40 transition-transform hover:scale-110">
                     <i class="fa-solid fa-shopping-cart"></i>
                     <span id="cart-fab-count" class="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-white">0</span>
                 </button>
 
+                <!-- Bottom Navigation Bar -->
                 <nav class="customer-bottom-nav fixed bottom-0 left-0 right-0 bg-white shadow-lg flex justify-around p-2 border-t z-50">
                     <a href="#home" class="customer-nav-link flex flex-col items-center p-2 rounded-lg w-full text-center transition-colors">
                         <i class="fa-solid fa-store text-xl"></i><span class="text-xs mt-1">المتجر</span>
@@ -580,7 +589,6 @@
             
             const content = `
                 <form id="customer-order-form">
-                    <h3 class="text-xl font-bold mb-4 border-b pb-3">ملخص الطلب</h3>
                     <div id="cart-items-container-sidebar" class="max-h-60 overflow-y-auto divide-y">${cartItemsHtml}</div>
                     ${geminiButtonHtml}
                     <div class="border-t pt-4 mt-4 space-y-2">
@@ -592,7 +600,11 @@
                         <h3 class="text-xl font-bold mb-4 border-b pb-3">تفاصيل التوصيل</h3>
                             <input type="text" name="customerName" class="w-full p-3 border rounded-lg mb-3" placeholder="الاسم الكامل" required>
                             <input type="tel" name="customerPhone" class="w-full p-3 border rounded-lg mb-3" placeholder="رقم الهاتف (لاكتساب النقاط)" required>
-                            <input type="text" name="customerAddress" class="w-full p-3 border rounded-lg" placeholder="العنوان بالتفصيل" required>
+                            <input type="text" name="customerAddress" class="w-full p-3 border rounded-lg mb-3" placeholder="العنوان بالتفصيل" required>
+                            <button type="button" id="get-location-btn" class="w-full text-center btn-primary bg-gray-600 hover:bg-gray-700 btn-sm mb-2"><i class="fa-solid fa-location-crosshairs mr-2"></i>تحديد الموقع الحالي</button>
+                            <p id="location-status" class="text-xs text-center text-gray-500 mb-3">الرجاء تحديد موقعك لتسهيل عملية التوصيل.</p>
+                            <input type="hidden" name="customerLat">
+                            <input type="hidden" name="customerLng">
                     </div>
                     <div class="mt-6">
                         <h3 class="text-lg font-bold mb-2">طرق الدفع المتاحة</h3>
@@ -607,10 +619,47 @@
             openModal('سلة المشتريات', content, 'max-w-lg');
             document.getElementById('customer-order-form').addEventListener('submit', handlePublicOrderSubmit);
             document.querySelector('input[name="customerPhone"]').addEventListener('blur', autoFillCustomerData);
+            document.getElementById('get-location-btn').addEventListener('click', handleGetLocation);
             const recipeBtn = document.getElementById('gemini-recipe-btn');
             if (recipeBtn) {
                 recipeBtn.addEventListener('click', handleRecipeSuggestion);
             }
+        }
+
+        function handleGetLocation(e) {
+            const button = e.target.closest('button');
+            const statusEl = document.getElementById('location-status');
+            const latInput = document.querySelector('input[name="customerLat"]');
+            const lngInput = document.querySelector('input[name="customerLng"]');
+
+            if (!navigator.geolocation) {
+                statusEl.textContent = 'المتصفح لا يدعم تحديد الموقع.';
+                statusEl.classList.add('text-red-500');
+                return;
+            }
+
+            button.disabled = true;
+            button.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> جاري التحديد...';
+            statusEl.textContent = 'الرجاء السماح بالوصول إلى موقعك.';
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    latInput.value = latitude;
+                    lngInput.value = longitude;
+                    statusEl.textContent = 'تم تحديد الموقع بنجاح!';
+                    statusEl.classList.remove('text-red-500');
+                    statusEl.classList.add('text-green-600');
+                    button.innerHTML = '<i class="fa-solid fa-check mr-2"></i> تم التحديد';
+                },
+                (error) => {
+                    statusEl.textContent = 'فشل تحديد الموقع. الرجاء المحاولة مرة أخرى.';
+                    statusEl.classList.add('text-red-500');
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fa-solid fa-location-crosshairs mr-2"></i>تحديد الموقع الحالي';
+                    console.error("Geolocation error:", error);
+                }
+            );
         }
 
         async function handleRecipeSuggestion(event) {
@@ -681,8 +730,7 @@
             const currentStatusIndex = statuses.indexOf(order.status);
             
             let stepsHtml = '';
-            statuses.forEach((index, i) => {
-                const status = statuses[i];
+            statuses.forEach((status, i) => {
                 const isCompleted = i < currentStatusIndex;
                 const isActive = i === currentStatusIndex;
                 stepsHtml += `<div class="step-item flex-1 ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}"><div class="step-icon-wrapper"><i class="fa-solid ${statusIcons[status]}"></i></div><p class="step-label">${statusTexts[status]}</p></div>`;
@@ -837,6 +885,19 @@
             if (Object.keys(cart).length === 0) { showToast('سلة المشتريات فارغة!', 'error'); return; }
             const form = e.target;
             const customerName = form.customerName.value, address = form.customerAddress.value, phone = form.customerPhone.value;
+            const lat = form.customerLat.value;
+            const lng = form.customerLng.value;
+
+            if (!lat || !lng) {
+                showToast('الرجاء تحديد موقعك على الخريطة أولاً.', 'error');
+                const statusEl = document.getElementById('location-status');
+                if (statusEl) {
+                    statusEl.classList.add('text-red-500', 'font-bold');
+                    statusEl.textContent = 'تحديد الموقع مطلوب لإتمام الطلب!';
+                }
+                return;
+            }
+
             db.counters.order++; const orderId = db.counters.order;
             let subtotal = 0;
             const orderItems = Object.entries(cart).map(([productId, quantity]) => { const product = db.products.find(p => p.id == productId); product.stock -= quantity; const finalPrice = getProductPrice(product); subtotal += finalPrice * quantity; return { productId: Number(productId), name: product.name, quantity, price: finalPrice }; });
@@ -844,8 +905,8 @@
             let customer = db.customers.find(c => c.phone === phone); if (!customer) { db.counters.customer++; customer = { id: db.counters.customer, name: customerName, phone, address, points: 0, tags: ['New'] }; db.customers.push(customer); } else { customer.address = address; }
             customer.points = (customer.points || 0) + Math.floor(total * (db.settings.pointsPerKWD || 100));
             const trackingToken = `ORDER_${orderId}_${Math.random().toString(36).substr(2, 6)}`;
-            // Geocode address to get coordinates (mock for now, would need Geocoding API)
-            const location = { lat: 29.378586 + (Math.random() - 0.5) * 0.1, lng: 47.990341 + (Math.random() - 0.5) * 0.1 };
+            
+            const location = { lat: parseFloat(lat), lng: parseFloat(lng) };
             const order = { id: orderId, trackingToken, customerId: customer.id, customerName, customerAddress: address, customerPhone: phone, timestamp: new Date().toISOString(), status: 'pending', items: orderItems, total, driverId: null, rating: null, paymentMethod: 'cash', location: location };
             db.orders.push(order); saveDB();
             let message = `*طلب جديد من ${db.settings.storeName}* 🛍️\n\n*رقم الطلب:* ${orderId}\n*العميل:* ${customerName}\n*العنوان:* ${address}\n*الهاتف:* ${phone}\n\n*لمتابعة طلبك:* ${window.location.origin}${window.location.pathname}#track=${trackingToken}\n\n*--- الطلبات ---*\n${orderItems.map(i => `- ${i.name} (x${i.quantity})`).join('\n')}\n\n*المجموع:* ${total.toFixed(3)} د.ك`;
@@ -1013,7 +1074,8 @@
             const content = `
                 <div id="chat-modal-content" data-order-id="${orderId}" class="flex flex-col h-[70vh]">
                     <div id="chat-messages" class="flex-grow overflow-y-auto p-4 bg-gray-100 rounded-t-lg space-y-4">
-                        </div>
+                        <!-- Messages will be rendered here -->
+                    </div>
                     <form id="chat-form" class="p-4 border-t flex gap-2">
                         <input id="chat-input" class="flex-grow p-2 border rounded-full" placeholder="اكتب رسالتك..." autocomplete="off">
                         <button type="submit" class="btn-primary rounded-full !p-3 h-12 w-12 flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button>
@@ -1064,7 +1126,7 @@
         // ----------------- MAP FUNCTIONS (NEW) -----------------
         function initAdminMap() {
             const mapContainer = document.getElementById('dashboard-map');
-            if (!mapContainer || !google) return;
+            if (!mapContainer || typeof google === 'undefined') return;
 
             const map = new google.maps.Map(mapContainer, {
                 zoom: 10,
@@ -1094,7 +1156,9 @@
                         position: order.location,
                         map,
                         title: `طلب #${order.id} - ${order.customerName}`,
-                        icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                        icon: {
+                            url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
+                        }
                     });
                 }
             });
@@ -1106,7 +1170,9 @@
                         position: driver.location,
                         map,
                         title: `السائق: ${driver.name}`,
-                        icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                         icon: {
+                            url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
+                        }
                     });
                 }
             });
@@ -1115,7 +1181,7 @@
         function initDriverOrderMap(order) {
             const mapContainer = document.getElementById(`driver-map-${order.id}`);
             const driver = db.drivers.find(d => d.id === order.driverId);
-            if (!mapContainer || !google || !driver || !driver.location || !order.location) return;
+            if (!mapContainer || typeof google === 'undefined' || !driver || !driver.location || !order.location) return;
 
             const map = new google.maps.Map(mapContainer, {
                 zoom: 12,
@@ -1132,7 +1198,7 @@
             map.fitBounds(bounds);
 
             const directionsService = new google.maps.DirectionsService();
-            const directionsRenderer = new google.maps.DirectionsRenderer({ suppressMarkers: true });
+            const directionsRenderer = new google.maps.DirectionsRenderer({ suppressMarkers: true, preserveViewport: true });
             directionsRenderer.setMap(map);
 
             directionsService.route({
@@ -1151,7 +1217,7 @@
         function initCustomerTrackingMap(order) {
             const mapContainer = document.getElementById('customer-tracking-map');
             const driver = db.drivers.find(d => d.id === order.driverId);
-            if (!mapContainer || !google || !driver || !driver.location || !order.location) return;
+            if (!mapContainer || typeof google === 'undefined' || !driver || !driver.location || !order.location) return;
 
             // Clear any existing simulation interval for this order
             if (driverIntervals[order.id]) clearInterval(driverIntervals[order.id]);
