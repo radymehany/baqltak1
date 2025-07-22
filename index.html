@@ -186,6 +186,7 @@
         const DB_NAME = 'Baqaltak_v53_DATA';
         const STATUS_EVENT_KEY = 'BAQALTAK_STATUS_EVENT';
         const CHAT_EVENT_KEY = 'BAQALTAK_CHAT_EVENT';
+        const NEW_ORDER_EVENT_KEY = 'BAQALTAK_NEW_ORDER_EVENT';
         let db = {};
         const logoUrl = "https://d.top4top.io/p_3489e11m01.png";
         let currentUser = null; // Can be 'admin' or 'driver'
@@ -312,6 +313,20 @@
         function renderPage(pageId, htmlContent, listeners) { const page = document.getElementById(pageId); if (page) { page.innerHTML = htmlContent; if(listeners) listeners(); } }
         function timeAgo(date) { const seconds = Math.floor((new Date() - new Date(date)) / 1000); let interval = seconds / 31536000; if (interval > 1) return `منذ ${Math.floor(interval)} سنة`; interval = seconds / 2592000; if (interval > 1) return `منذ ${Math.floor(interval)} شهر`; interval = seconds / 86400; if (interval > 1) return `منذ ${Math.floor(interval)} يوم`; interval = seconds / 3600; if (interval > 1) return `منذ ${Math.floor(interval)} ساعة`; interval = seconds / 60; if (interval > 1) return `منذ ${Math.floor(interval)} دقيقة`; return `منذ ${Math.floor(seconds)} ثانية`; }
         
+        // ----------------- SOUND NOTIFICATION FUNCTIONS -----------------
+        function playSound(note, duration) {
+            try {
+                const synth = new Tone.Synth().toDestination();
+                Tone.start();
+                synth.triggerAttackRelease(note, duration);
+            } catch (e) {
+                console.error("Could not play sound:", e);
+            }
+        }
+        const playNewOrderSound = () => playSound("C5", "8n");
+        const playStatusUpdateSound = () => playSound("E5", "8n");
+        const playDriverNotificationSound = () => playSound("G5", "8n");
+
         // ----------------- LOGIN / SELECTION VIEWS -----------------
         function renderLoginOverlay(type) {
             const overlay = document.getElementById('password-overlay');
@@ -370,7 +385,7 @@
 
         // ----------------- CUSTOMER VIEW FUNCTIONS (NEW MOBILE UI) -----------------
         function renderPublicView() {
-            window.removeEventListener('storage', handleStorageEvent);
+            window.removeEventListener('storage', globalStorageListener);
             const hash = window.location.hash.substring(1);
             if (hash.startsWith('track=')) {
                 renderOrderTrackingPage(hash.substring(6));
@@ -380,15 +395,19 @@
             }
         }
         
-        function handleStorageEvent(event) {
+        function globalStorageListener(event) {
+            // Listener for customer tracking page
             if (event.key === STATUS_EVENT_KEY) {
                 const currentToken = window.location.hash.substring(1).substring(6);
                 const updateInfo = JSON.parse(event.newValue);
                 if (currentToken === updateInfo.token) {
+                    playStatusUpdateSound();
                     showToast('يتم تحديث حالة طلبك...', 'success');
                     renderOrderTrackingPage(updateInfo.token);
                 }
-            } else if (event.key === CHAT_EVENT_KEY) {
+            } 
+            // Listener for chat
+            else if (event.key === CHAT_EVENT_KEY) {
                 const chatModal = document.getElementById('chat-modal-content');
                 if (chatModal) {
                     const { orderId } = JSON.parse(event.newValue);
@@ -396,6 +415,18 @@
                         renderChatMessages(orderId, 'customer');
                     }
                 }
+            }
+            // Listener for Admin new order
+            else if (event.key === NEW_ORDER_EVENT_KEY && currentUser?.type === 'admin') {
+                 playNewOrderSound();
+                 showToast('🎉 طلب جديد!', 'success');
+                 if(window.location.hash === '#dashboard' || window.location.hash === '') {
+                     renderDashboard();
+                 }
+            }
+             // Listener for Driver new order
+            else if (event.key === DB_NAME && currentUser?.type === 'driver') {
+                handleDriverStorageEvent(event);
             }
         }
 
@@ -693,7 +724,7 @@
         }
 
         function renderOrderTrackingPage(token) {
-            window.addEventListener('storage', handleStorageEvent);
+            window.addEventListener('storage', globalStorageListener);
             // Switch to the main customer view container to show the tracking page
             document.getElementById('selection-view').style.display = 'none';
             document.getElementById('driver-portal-view').style.display = 'none';
@@ -908,7 +939,10 @@
             
             const location = { lat: parseFloat(lat), lng: parseFloat(lng) };
             const order = { id: orderId, trackingToken, customerId: customer.id, customerName, customerAddress: address, customerPhone: phone, timestamp: new Date().toISOString(), status: 'pending', items: orderItems, total, driverId: null, rating: null, paymentMethod: 'cash', location: location };
-            db.orders.push(order); saveDB();
+            db.orders.push(order); 
+            saveDB();
+            localStorage.setItem(NEW_ORDER_EVENT_KEY, JSON.stringify({ orderId: order.id, timestamp: Date.now() }));
+
             let message = `*طلب جديد من ${db.settings.storeName}* 🛍️\n\n*رقم الطلب:* ${orderId}\n*العميل:* ${customerName}\n*العنوان:* ${address}\n*الهاتف:* ${phone}\n\n*لمتابعة طلبك:* ${window.location.origin}${window.location.pathname}#track=${trackingToken}\n\n*--- الطلبات ---*\n${orderItems.map(i => `- ${i.name} (x${i.quantity})`).join('\n')}\n\n*المجموع:* ${total.toFixed(3)} د.ك`;
             window.open(`https://api.whatsapp.com/send?phone=${db.settings.whatsappNumber}&text=${encodeURIComponent(message)}`, '_blank');
             cart = {}; saveCart(); closeModal();
@@ -917,7 +951,6 @@
         
         // ----------------- DRIVER PORTAL FUNCTIONS -----------------
         function renderDriverPortal(driverId) {
-            window.addEventListener('storage', handleDriverStorageEvent);
             const portalView = document.getElementById('driver-portal-view');
             const driver = db.drivers.find(d => d.id === driverId);
             if (!driver) {
@@ -1024,49 +1057,29 @@
         }
 
         function handleDriverStorageEvent(event) {
-            if (event.key === DB_NAME) {
-                const oldDbData = JSON.stringify(db);
-                loadDB();
-                const newDbData = JSON.stringify(db);
+            const oldDbData = JSON.stringify(db);
+            loadDB();
+            const newDbData = JSON.stringify(db);
 
-                if (oldDbData !== newDbData && currentUser && currentUser.type === 'driver') {
-                    const oldOrders = JSON.parse(oldDbData).orders.filter(o => o.driverId === currentUser.id && o.status === 'out_for_delivery').length;
-                    const newOrders = db.orders.filter(o => o.driverId === currentUser.id && o.status === 'out_for_delivery').length;
-                    
-                    if (newOrders > oldOrders) {
-                        playNotificationSound();
-                        const bell = document.querySelector('.notification-bell');
-                        const badge = document.getElementById('notification-badge');
-                        if(bell) bell.classList.add('active');
-                        if(badge) {
-                            badge.textContent = newOrders;
-                            badge.classList.remove('hidden');
-                        }
-                        setTimeout(() => bell?.classList.remove('active'), 800);
+            if (oldDbData !== newDbData && currentUser && currentUser.type === 'driver') {
+                const oldOrders = JSON.parse(oldDbData).orders.filter(o => o.driverId === currentUser.id && o.status === 'out_for_delivery').length;
+                const newOrders = db.orders.filter(o => o.driverId === currentUser.id && o.status === 'out_for_delivery').length;
+                
+                if (newOrders > oldOrders) {
+                    playDriverNotificationSound();
+                    const bell = document.querySelector('.notification-bell');
+                    const badge = document.getElementById('notification-badge');
+                    if(bell) bell.classList.add('active');
+                    if(badge) {
+                        badge.textContent = newOrders;
+                        badge.classList.remove('hidden');
                     }
-                    renderDriverPortal(currentUser.id);
+                    setTimeout(() => bell?.classList.remove('active'), 800);
                 }
-            } else if (event.key === CHAT_EVENT_KEY) {
-                const chatModal = document.getElementById('chat-modal-content');
-                if (chatModal) {
-                    const { orderId } = JSON.parse(event.newValue);
-                    if (chatModal.dataset.orderId == orderId) {
-                        renderChatMessages(orderId, 'driver');
-                    }
-                }
+                renderDriverPortal(currentUser.id);
             }
         }
         
-        function playNotificationSound() {
-            try {
-                const synth = new Tone.Synth().toDestination();
-                Tone.start();
-                synth.triggerAttackRelease("C5", "8n");
-            } catch (e) {
-                console.error("Could not play sound:", e);
-            }
-        }
-
         // ----------------- CHAT FUNCTIONS -----------------
         function openChatModal(orderId, userType) {
             const order = db.orders.find(o => o.id === orderId);
@@ -1317,9 +1330,27 @@
         function renderDashboard() {
             const pendingOrders = db.orders.filter(o => o.status === 'pending').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
             const inProgressOrders = db.orders.filter(o => o.status === 'in_progress').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            const outForDeliveryOrders = db.orders.filter(o => o.status === 'out_for_delivery').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
             const lowStockProducts = db.products.filter(p => p.stock > 0 && p.stock <= (p.lowStockThreshold || 5));
 
-            const createOrderCard = (order) => `<div class="order-card border rounded-lg p-4 shadow-sm mb-4"><div class="flex justify-between items-start mb-2"><div><p class="font-bold text-lg">طلب #${order.id}</p><p class="text-sm text-gray-500">${order.customerName}</p></div><p class="text-xs text-gray-400">${timeAgo(order.timestamp)}</p></div><p class="text-sm my-2">المنتجات: ${order.items.length} أصناف</p><p class="font-bold text-lg text-green-600 mb-4">${order.total.toFixed(3)} د.ك</p><div class="flex gap-2"><button class="view-order-btn text-sm bg-gray-200 hover:bg-gray-300 font-bold py-2 px-4 rounded-lg flex-1" data-id="${order.id}">عرض التفاصيل</button>${order.status === 'pending' ? `<button class="start-processing-btn text-sm bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex-1" data-id="${order.id}">بدء التجهيز</button>` : ''}${order.status === 'in_progress' ? `<button class="assign-driver-btn text-sm bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg flex-1" data-id="${order.id}">تعيين سائق</button>` : ''}</div></div>`;
+            const createOrderCard = (order) => {
+                const driver = order.driverId ? db.drivers.find(d => d.id === order.driverId) : null;
+                const driverInfo = driver ? `<p class="text-xs text-purple-600 font-bold mt-1">مع السائق: ${driver.name}</p>` : '';
+                return `<div class="order-card border rounded-lg p-4 shadow-sm mb-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div><p class="font-bold text-lg">طلب #${order.id}</p><p class="text-sm text-gray-500">${order.customerName}</p></div>
+                        <p class="text-xs text-gray-400">${timeAgo(order.timestamp)}</p>
+                    </div>
+                    <p class="text-sm my-2">المنتجات: ${order.items.length} أصناف</p>
+                    <p class="font-bold text-lg text-green-600 mb-2">${order.total.toFixed(3)} د.ك</p>
+                    ${driverInfo}
+                    <div class="flex gap-2 mt-4">
+                        <button class="view-order-btn text-sm bg-gray-200 hover:bg-gray-300 font-bold py-2 px-4 rounded-lg flex-1" data-id="${order.id}">عرض التفاصيل</button>
+                        ${order.status === 'pending' ? `<button class="start-processing-btn text-sm bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex-1" data-id="${order.id}">بدء التجهيز</button>` : ''}
+                        ${order.status === 'in_progress' ? `<button class="assign-driver-btn text-sm bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-4 rounded-lg flex-1" data-id="${order.id}">تعيين سائق</button>` : ''}
+                    </div>
+                </div>`;
+            };
             const lowStockHtml = lowStockProducts.length > 0 ? lowStockProducts.map(p => `<div class="flex justify-between items-center p-2 border-b"><span class="font-semibold">${p.name}</span><span class="font-bold text-red-500">${p.stock}</span></div>`).join('') : '<p class="text-center text-gray-400 p-4">المخزون بحالة جيدة.</p>';
                 
             const content = `
@@ -1332,12 +1363,11 @@
                 <div id="dashboard-content">
                     <div id="orders-view" class="tab-content">
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between">طلبات جديدة <span class="bg-yellow-200 text-yellow-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded-full">${pendingOrders.length}</span></h3><div class="space-y-3 max-h-[60vh] overflow-y-auto">${pendingOrders.map(createOrderCard).join('') || '<p class="text-center text-gray-400 p-4">لا توجد طلبات جديدة</p>'}</div></div>
-                                <div class="order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between">قيد التجهيز <span class="bg-blue-200 text-blue-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded-full">${inProgressOrders.length}</span></h3><div class="space-y-3 max-h-[60vh] overflow-y-auto">${inProgressOrders.map(createOrderCard).join('') || '<p class="text-center text-gray-400 p-4">لا توجد طلبات قيد التجهيز</p>'}</div></div>
-                            </div>
-                            <div class="lg:col-span-1 order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between"><i class="fa-solid fa-triangle-exclamation text-yellow-500 mr-2"></i>تنبيهات المخزون</h3><div class="space-y-2 max-h-[60vh] overflow-y-auto">${lowStockHtml}</div></div>
+                            <div class="order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between">طلبات جديدة <span class="bg-yellow-200 text-yellow-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded-full">${pendingOrders.length}</span></h3><div class="space-y-3 max-h-[60vh] overflow-y-auto">${pendingOrders.map(createOrderCard).join('') || '<p class="text-center text-gray-400 p-4">لا توجد طلبات جديدة</p>'}</div></div>
+                            <div class="order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between">قيد التجهيز <span class="bg-blue-200 text-blue-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded-full">${inProgressOrders.length}</span></h3><div class="space-y-3 max-h-[60vh] overflow-y-auto">${inProgressOrders.map(createOrderCard).join('') || '<p class="text-center text-gray-400 p-4">لا توجد طلبات قيد التجهيز</p>'}</div></div>
+                            <div class="order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between">قيد التوصيل <span class="bg-purple-200 text-purple-800 text-sm font-semibold mr-2 px-2.5 py-0.5 rounded-full">${outForDeliveryOrders.length}</span></h3><div class="space-y-3 max-h-[60vh] overflow-y-auto">${outForDeliveryOrders.map(createOrderCard).join('') || '<p class="text-center text-gray-400 p-4">لا توجد طلبات قيد التوصيل</p>'}</div></div>
                         </div>
+                         <div class="mt-6 order-column border rounded-lg p-4"><h3 class="font-bold text-xl mb-4 flex items-center justify-between"><i class="fa-solid fa-triangle-exclamation text-yellow-500 mr-2"></i>تنبيهات المخزون</h3><div class="space-y-2 max-h-[60vh] overflow-y-auto">${lowStockHtml}</div></div>
                     </div>
                     <div id="map-view" class="tab-content hidden">
                         <div id="dashboard-map" class="dashboard-map-container rounded-lg shadow-md"></div>
@@ -1430,16 +1460,42 @@
         
         function renderDrivers() {
             const drivers = db.drivers;
+            const getStarRating = (rating) => {
+                let stars = '';
+                for (let i = 1; i <= 5; i++) {
+                    stars += `<i class="fa-solid fa-star ${i <= rating ? 'text-yellow-400' : 'text-gray-300'}"></i>`;
+                }
+                return stars;
+            };
+
             const content = `
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-bold">إدارة السائقين</h2>
                     <button id="add-driver-btn" class="btn-primary">إضافة سائق</button>
                 </div>
-                <div class="bg-white rounded-lg shadow overflow-hidden">
-                    <table class="min-w-full">
-                        <thead class="bg-gray-50"><tr><th class="p-3 text-right">الاسم</th><th class="p-3 text-center">الهاتف</th><th></th></tr></thead>
-                        <tbody>${drivers.map(d => `<tr><td class="p-3">${d.name}</td><td class="p-3 text-center">${d.phone}</td><td class="p-3 text-left"><button class="edit-driver-btn text-blue-500" data-id="${d.id}"><i class="fa fa-edit"></i></button></td></tr>`).join('')}</tbody>
-                    </table>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="drivers-list">
+                    ${drivers.map(d => {
+                        const driverOrders = db.orders.filter(o => o.driverId === d.id && o.status === 'delivered');
+                        const completedOrdersCount = driverOrders.length;
+                        const ratings = driverOrders.map(o => o.rating?.driver).filter(Boolean);
+                        const averageRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
+                        
+                        return `<div class="bg-white rounded-lg shadow p-5 flex flex-col">
+                            <h3 class="text-xl font-bold">${d.name}</h3>
+                            <p class="text-gray-500">${d.phone}</p>
+                            <div class="my-4">
+                                <div class="flex justify-between items-center text-sm">
+                                    <span class="font-semibold">متوسط التقييم:</span>
+                                    <span class="flex items-center gap-1">${getStarRating(averageRating)} (${averageRating.toFixed(1)})</span>
+                                </div>
+                                <div class="flex justify-between items-center text-sm mt-2">
+                                    <span class="font-semibold">الطلبات المنجزة:</span>
+                                    <span class="font-bold">${completedOrdersCount}</span>
+                                </div>
+                            </div>
+                            <button class="view-driver-details-btn mt-auto w-full btn-primary btn-sm bg-gray-200 text-gray-800 hover:bg-gray-300">عرض التفاصيل</button>
+                        </div>`;
+                    }).join('')}
                 </div>`;
             renderPage('page-drivers', content, () => {
                 document.getElementById('add-driver-btn').addEventListener('click', () => handleAddEditDriver());
@@ -1526,6 +1582,7 @@
             if(sidebarOverlay) sidebarOverlay.addEventListener('click', toggleSidebar);
 
             window.addEventListener('hashchange', handleHashChange);
+            window.addEventListener('storage', globalStorageListener);
             
             const sessionUser = sessionStorage.getItem('currentUser');
             if (sessionUser) {
