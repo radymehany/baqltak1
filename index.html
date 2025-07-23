@@ -7,7 +7,7 @@
 
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" xintegrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -16,8 +16,7 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 
-    <!-- Google Maps API Script - REPLACE 'YOUR_GOOGLE_MAPS_API_KEY' -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&libraries=places,geometry"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_Maps_API_KEY&libraries=places,geometry"></script>
 
 
     <style>
@@ -32,6 +31,7 @@
         
         .btn-primary { font-weight: bold; padding: 0.75rem 1.5rem; border-radius: 0.5rem; transition: all 0.3s; cursor: pointer; }
         .btn-primary:hover { transform: translateY(-2px); }
+        .btn-primary:disabled { background-color: #9ca3af !important; cursor: not-allowed; }
         .btn-sm { padding: 0.25rem 0.75rem; font-size: 0.875rem; }
 
         /* --- Light Mode --- */
@@ -55,15 +55,15 @@
         body.dark-mode input, body.dark-mode select, body.dark-mode textarea { background-color: #334155; border-color: #4b5563; }
         body.dark-mode .bg-white { background-color: #1e293b; }
         body.dark-mode .bg-gray-50, body.dark-mode .bg-gray-100, body.dark-mode .bg-gray-200 { background-color: #1f2937; }
-        body.dark-mode .text-gray-500 { color: #9ca3af; }
-        body.dark-mode .text-gray-600 { color: #d1d5db; }
-        body.dark-mode .border, body.dark-mode .border-b, body.dark-mode .border-t { border-color: #374151; }
-        body.dark-mode .order-column, body.dark-mode .portal-bg { background-color: #1f2937; }
-        body.dark-mode .order-card { background-color: #374151; }
-        body.dark-mode .customer-view-bg { background-color: #1a202c; }
-        body.dark-mode .customer-bottom-nav { background-color: #1e293b; border-top-color: #374151; }
-        body.dark-mode .customer-bottom-nav a { color: #9ca3af; }
-        body.dark-mode .customer-bottom-nav a.active { color: #fb923c; }
+        .dark-mode .text-gray-500 { color: #9ca3af; }
+        .dark-mode .text-gray-600 { color: #d1d5db; }
+        .dark-mode .border, body.dark-mode .border-b, body.dark-mode .border-t { border-color: #374151; }
+        .dark-mode .order-column, body.dark-mode .portal-bg { background-color: #1f2937; }
+        .dark-mode .order-card { background-color: #374151; }
+        .dark-mode .customer-view-bg { background-color: #1a202c; }
+        .dark-mode .customer-bottom-nav { background-color: #1e293b; border-top-color: #374151; }
+        .dark-mode .customer-bottom-nav a { color: #9ca3af; }
+        .dark-mode .customer-bottom-nav a.active { color: #fb923c; }
 
 
         .category-filters-container::-webkit-scrollbar { display: none; }
@@ -108,7 +108,6 @@
 </head>
 <body class="light-mode">
     <div id="root-container">
-        <!-- SELECTION VIEW -->
         <div id="selection-view" class="view flex flex-col items-center justify-center h-screen p-4">
             <div class="p-8 md:p-12 rounded-lg shadow-2xl text-center w-full max-w-md bg-white">
                 <img id="logo-selection" src="" alt="Logo" class="max-w-[180px] h-auto mx-auto mb-6">
@@ -121,10 +120,8 @@
             </div>
         </div>
         
-        <!-- PASSWORD OVERLAY -->
         <div id="password-overlay" class="view fixed inset-0 bg-gray-900 bg-opacity-75 flex-col items-center justify-center z-50 p-4"></div>
         
-        <!-- ADMIN APP CONTAINER -->
         <div id="app-container" class="view">
             <div class="relative min-h-screen md:flex">
                 <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden md:hidden"></div>
@@ -171,10 +168,8 @@
             </div>
         </div>
         
-        <!-- CUSTOMER VIEW -->
         <div id="customer-view" class="view customer-view-bg min-h-screen pb-24"></div>
 
-        <!-- DRIVER PORTAL VIEW -->
         <div id="driver-portal-view" class="view portal-bg min-h-screen"></div>
 
     </div>
@@ -183,7 +178,7 @@
     <div id="toast-container" class="fixed top-5 right-5 z-[101] space-y-2"></div>
 
     <script type="module">
-        const DB_NAME = 'Baqaltak_v53_DATA';
+        const DB_NAME = 'Baqaltak_v54_DATA'; //--[ CHANGED ]-- Incremented version
         const STATUS_EVENT_KEY = 'BAQALTAK_STATUS_EVENT';
         const CHAT_EVENT_KEY = 'BAQALTAK_CHAT_EVENT';
         const NEW_ORDER_EVENT_KEY = 'BAQALTAK_NEW_ORDER_EVENT';
@@ -192,6 +187,7 @@
         let currentUser = null; // Can be 'admin' or 'driver'
         let cart = {};
         let driverIntervals = {}; // To store simulation intervals for maps
+        let driverTimers = {}; //--[ NEW ]-- To store rejection timers for drivers
         let mapInstances = {}; // To store initialized map objects
 
         // ----------------- GEMINI API FUNCTION -----------------
@@ -235,52 +231,11 @@
                     { id: 4, name: 'طماطم (كيلو)', description: 'طماطم حمراء طازجة للسلطات والطبخ.', sku: 'VE001', category: 'خضروات', price: 0.400, stock: 100, lowStockThreshold: 20, isFeatured: true, iconClass: 'fa-solid fa-carrot' },
                     { id: 5, name: 'خيار (كيلو)', description: 'خيار طازج ومقرمش.', sku: 'VE002', category: 'خضروات', price: 0.350, stock: 120, lowStockThreshold: 25, isFeatured: false, iconClass: 'fa-solid fa-seedling' },
                     { id: 6, name: 'بطاطس (كيس)', description: 'كيس بطاطس للقلي أو الطبخ.', sku: 'VE003', category: 'خضروات', price: 0.800, stock: 70, lowStockThreshold: 15, isFeatured: false, iconClass: 'fa-solid fa-pepper-hot' },
-                    // مخبوزات
-                    { id: 7, name: 'خبز لبناني (كيس)', description: 'كيس خبز لبناني طازج.', sku: 'BK001', category: 'مخبوزات', price: 0.100, stock: 150, lowStockThreshold: 30, isFeatured: true, iconClass: 'fa-solid fa-bread-slice' },
-                    { id: 8, name: 'صمون (كيس 6 حبات)', description: 'صمون طري للساندويتشات.', sku: 'BK002', category: 'مخبوزات', price: 0.200, stock: 100, lowStockThreshold: 20, isFeatured: false, iconClass: 'fa-solid fa-hotdog' },
-                    // ألبان وبيض
-                    { id: 9, name: 'حليب المراعي كامل الدسم (1 لتر)', description: 'حليب طازج كامل الدسم.', sku: 'DA001', category: 'ألبان وبيض', price: 0.450, stock: 90, lowStockThreshold: 15, isFeatured: true, iconClass: 'fa-solid fa-cow' },
-                    { id: 10, name: 'بيض (طبق 30 حبة)', description: 'طبق بيض طازج.', sku: 'DA002', category: 'ألبان وبيض', price: 1.250, stock: 50, lowStockThreshold: 10, isFeatured: false, iconClass: 'fa-solid fa-egg' },
-                    { id: 11, name: 'زبادي (روب) المراعي', description: 'زبادي طازج.', sku: 'DA003', category: 'ألبان وبيض', price: 0.100, stock: 200, lowStockThreshold: 40, isFeatured: false, iconClass: 'fa-solid fa-ice-cream' },
-                    // لحوم ودواجن
-                    { id: 12, name: 'دجاج ساديا مجمد (1000 جم)', description: 'دجاجة كاملة مجمدة.', sku: 'ME001', category: 'لحوم ودواجن', price: 1.100, stock: 40, lowStockThreshold: 10, isFeatured: false, iconClass: 'fa-solid fa-drumstick-bite' },
-                    // مشروبات
-                    { id: 13, name: 'مياه معدنية (كرتون 12 حبة)', description: 'كرتون مياه معدنية.', sku: 'BE001', category: 'مشروبات', price: 0.750, stock: 100, lowStockThreshold: 20, isFeatured: false, iconClass: 'fa-solid fa-bottle-water' },
-                    { id: 14, name: 'بيبسي (علبة)', description: 'مشروب غازي.', sku: 'BE002', category: 'مشروبات', price: 0.100, stock: 300, lowStockThreshold: 50, isFeatured: false, iconClass: 'fa-solid fa-martini-glass-citrus' },
-                    { id: 15, name: 'عصير برتقال كي دي دي (180 مل)', description: 'عصير برتقال طبيعي.', sku: 'BE003', category: 'مشروبات', price: 0.125, stock: 150, lowStockThreshold: 30, isFeatured: false, iconClass: 'fa-solid fa-glass-water' },
-                    // معلبات
-                    { id: 16, name: 'تونة (علبة)', description: 'تونة معلبة بالزيت.', sku: 'CA001', category: 'معلبات', price: 0.350, stock: 80, lowStockThreshold: 15, isFeatured: false, iconClass: 'fa-solid fa-jar' },
-                    { id: 17, name: 'فول مدمس (علبة)', description: 'فول مدمس جاهز للأكل.', sku: 'CA002', category: 'معلبات', price: 0.200, stock: 100, lowStockThreshold: 20, isFeatured: false, iconClass: 'fa-solid fa-box-archive' },
-                    // حبوب ومعكرونة
-                    { id: 18, name: 'أرز بسمتي (5 كيلو)', description: 'كيس أرز بسمتي حبة طويلة.', sku: 'GR001', category: 'حبوب ومعكرونة', price: 3.500, stock: 30, lowStockThreshold: 5, isFeatured: false, iconClass: 'fa-solid fa-bowl-rice' },
-                    { id: 19, name: 'معكرونة (500 جم)', description: 'معكرونة إيطالية.', sku: 'GR002', category: 'حبوب ومعكرونة', price: 0.400, stock: 70, lowStockThreshold: 15, isFeatured: false, iconClass: 'fa-solid fa-plate-wheat' },
-                    // وجبات خفيفة
-                    { id: 20, name: 'بطاطس ليز بالملح', description: 'كيس بطاطس شيبس.', sku: 'SN001', category: 'وجبات خفيفة', price: 0.150, stock: 200, lowStockThreshold: 40, isFeatured: true, iconClass: 'fa-solid fa-cookie' },
-                    // حلويات
-                    { id: 21, name: 'شوكولاتة كادبوري', description: 'لوح شوكولاتة بالحليب.', sku: 'SW001', category: 'حلويات', price: 0.250, stock: 150, lowStockThreshold: 30, isFeatured: false, iconClass: 'fa-solid fa-candy-cane' },
-                    // مجمدات
-                    { id: 22, name: 'برجر دجاج (كرتون)', description: 'كرتون برجر دجاج مجمد.', sku: 'FRZ01', category: 'مجمدات', price: 2.500, stock: 40, lowStockThreshold: 10, isFeatured: false, iconClass: 'fa-solid fa-ice-cream' },
-                    // بهارات وتوابل
-                    { id: 23, name: 'ملح (علبة)', description: 'ملح طعام ناعم.', sku: 'SP001', category: 'بهارات وتوابل', price: 0.150, stock: 100, lowStockThreshold: 20, isFeatured: false, iconClass: 'fa-solid fa-mortar-pestle' },
-                    // زيوت وصلصات
-                    { id: 24, name: 'زيت دوار الشمس (1.5 لتر)', description: 'زيت طبخ نباتي.', sku: 'OI001', category: 'زيوت وصلصات', price: 1.200, stock: 50, lowStockThreshold: 10, isFeatured: false, iconClass: 'fa-solid fa-bottle-droplet' },
-                    { id: 25, name: 'كاتشب هاينز', description: 'صلصة طماطم كاتشب.', sku: 'OI002', category: 'زيوت وصلصات', price: 0.650, stock: 80, lowStockThreshold: 15, isFeatured: false, iconClass: 'fa-solid fa-flask' },
-                    // منظفات
-                    { id: 26, name: 'صابون سائل لليدين', description: 'صابون سائل معقم لليدين.', sku: 'CL001', category: 'منظفات', price: 0.750, stock: 60, lowStockThreshold: 10, isFeatured: false, iconClass: 'fa-solid fa-soap' },
-                    { id: 27, name: 'كلوركس مبيض', description: 'سائل مبيض للملابس والأسطح.', sku: 'CL002', category: 'منظفات', price: 0.500, stock: 70, lowStockThreshold: 15, isFeatured: false, iconClass: 'fa-solid fa-jug-detergent' },
-                    // عناية شخصية
-                    { id: 28, name: 'معجون أسنان سيجنال', description: 'معجون أسنان للحماية من التسوس.', sku: 'PC001', category: 'عناية شخصية', price: 0.400, stock: 90, lowStockThreshold: 20, isFeatured: false, iconClass: 'fa-solid fa-tooth' },
-                    { id: 29, name: 'شامبو هيد آند شولدرز', description: 'شامبو ضد القشرة.', sku: 'PC002', category: 'عناية شخصية', price: 1.500, stock: 50, lowStockThreshold: 10, isFeatured: false, iconClass: 'fa-solid fa-pump-soap' },
-                    // مستلزمات أطفال
-                    { id: 30, name: 'حفاضات بامبرز (مقاس 4)', description: 'عبوة حفاضات للأطفال.', sku: 'BA001', category: 'مستلزمات أطفال', price: 4.500, stock: 20, lowStockThreshold: 5, isFeatured: false, iconClass: 'fa-solid fa-baby' },
-                    // أدوات منزلية
-                    { id: 31, name: 'أكياس قمامة (رول)', description: 'رول أكياس قمامة حجم وسط.', sku: 'HH001', category: 'أدوات منزلية', price: 0.300, stock: 100, lowStockThreshold: 20, isFeatured: false, iconClass: 'fa-solid fa-trash' },
-                    { id: 32, name: 'مناديل ورقية (علبة)', description: 'علبة مناديل ورقية ناعمة.', sku: 'HH002', category: 'أدوات منزلية', price: 0.150, stock: 200, lowStockThreshold: 40, isFeatured: false, iconClass: 'fa-solid fa-box' },
                 ],
                 customers: [{id: 1, name: 'خالد المطيري', phone: '96567734409', address: 'المنطقة العاشرة، قطعة 1، شارع 2', points: 150, notes: 'يفضل الدفع كاش', location: { lat: 29.378586, lng: 47.990341 } }], 
                 orders: [
                     {id: 1, trackingToken: 'ORDER_1_abcdef', customerId: 1, customerName: "خالد المطيري", customerAddress: "المنطقة العاشرة", customerPhone: "96567734409", timestamp: new Date(Date.now() - 2 * 86400000).toISOString(), status: 'delivered', items: [{productId: 1, name: 'تفاح أحمر (كيلو)', quantity: 2, price: 0.750}], total: 2.000, driverId: 1, rating: { driver: 5, comment: 'توصيل سريع' }, paymentMethod: 'cash', location: { lat: 29.378586, lng: 47.990341 } },
-                    {id: 2, trackingToken: 'ORDER_2_ghijk', customerId: 1, customerName: "خالد المطيري", customerAddress: "المنطقة العاشرة", customerPhone: "96567734409", timestamp: new Date().toISOString(), status: 'out_for_delivery', items: [{productId: 2, name: 'خبز لبناني (كيس)', quantity: 4, price: 0.100}], total: 0.900, driverId: 1, paymentMethod: 'online', location: { lat: 29.378586, lng: 47.990341 } },
+                    {id: 2, trackingToken: 'ORDER_2_ghijk', customerId: 1, customerName: "خالد المطيري", customerAddress: "المنطقة العاشرة", customerPhone: "96567734409", timestamp: new Date().toISOString(), status: 'out_for_delivery', items: [{productId: 2, name: 'موز (كيلو)', quantity: 4, price: 0.600}], total: 2.900, driverId: 1, paymentMethod: 'online', location: { lat: 29.378586, lng: 47.990341 } },
                 ],
                 promotions: [{id: 1, name: 'عرض اليوم الوطني', productIds: [1], discount: 0.1}],
                 expenses: [{id: 1, date: new Date().toISOString().slice(0,10), description: 'إيجار المحل', amount: 250.000, category: 'مصاريف ثابتة'}],
@@ -288,13 +243,21 @@
                 drivers: [{ id: 1, name: 'محمد علي', phone: '96511112222', pin: '1234', location: { lat: 29.3758, lng: 47.9832 } }],
                 returns: [],
                 chats: {},
-                settings: { storeName: 'بقالتك', whatsappNumber: '96567734409', pointsPerKWD: 100, shippingFee: 0.500, storeLocation: { lat: 29.3696, lng: 47.9783 } },
-                counters: { product: 32, customer: 1, order: 2, user: 1, promotion: 1, expense: 1, driver: 1, return: 0 }
+                //--[ CHANGED ]-- Added store location
+                settings: { 
+                    storeName: 'بقالتك', 
+                    whatsappNumber: '96567734409', 
+                    pointsPerKWD: 100, 
+                    shippingFee: 0.500,
+                    storeLocation: { lat: 29.3696, lng: 47.9783 } // Sample store location in Kuwait
+                },
+                counters: { product: 6, customer: 1, order: 2, user: 1, promotion: 1, expense: 1, driver: 1, return: 0 }
             };
             if (data) { try { db = JSON.parse(data); } catch (e) { db = defaultDB; } } else { db = defaultDB; }
             if (!db.drivers) db.drivers = [];
             if (!db.returns) db.returns = [];
             if (!db.chats) db.chats = {};
+            if (!db.settings.storeLocation) db.settings.storeLocation = { lat: 29.3696, lng: 47.9783 }; //--[ NEW ]-- Ensure store location exists
             if (!db.counters.driver) db.counters.driver = (db.drivers.length > 0) ? Math.max(...db.drivers.map(d => d.id)) : 0;
             if (!db.counters.return) db.counters.return = 0;
             if (cartData) { try { cart = JSON.parse(cartData); } catch (e) { cart = {}; } } else { cart = {}; }
@@ -303,10 +266,26 @@
         function saveCart() { localStorage.setItem(DB_NAME + '_Cart', JSON.stringify(cart)); }
         function getDB() { return db; }
         
+        //--[ NEW ]-- Inventory logic to account for reserved stock in pending orders
+        function getReservedStock(productId) {
+            return db.orders
+                .filter(o => o.status === 'pending' || o.status === 'awaiting_driver_confirmation')
+                .flatMap(o => o.items)
+                .filter(item => item.productId === productId)
+                .reduce((sum, item) => sum + item.quantity, 0);
+        }
+
+        function getAvailableStock(productId) {
+            const product = db.products.find(p => p.id === productId);
+            if (!product) return 0;
+            const reserved = getReservedStock(productId);
+            return product.stock - reserved;
+        }
+        
         // ----------------- UTILITY & AUTH FUNCTIONS -----------------
         function login(username, password) { const user = getDB().users.find(u => u.username === username && u.password === password); if (user) { currentUser = { ...user, type: 'admin' }; sessionStorage.setItem('currentUser', JSON.stringify(currentUser)); return true; } return false; }
         function driverLogin(phone, pin) { const driver = getDB().drivers.find(d => d.phone === phone && d.pin === pin); if (driver) { currentUser = { ...driver, type: 'driver' }; sessionStorage.setItem('currentUser', JSON.stringify(currentUser)); return true; } return false; }
-        function logout() { Object.values(driverIntervals).forEach(clearInterval); driverIntervals = {}; currentUser = null; sessionStorage.removeItem('currentUser'); window.location.hash = ''; window.location.reload(); }
+        function logout() { Object.values(driverIntervals).forEach(clearInterval); driverIntervals = {}; Object.values(driverTimers).forEach(clearTimeout); driverTimers = {}; currentUser = null; sessionStorage.removeItem('currentUser'); window.location.hash = ''; window.location.reload(); }
         function showToast(message, type = 'success') { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = `p-4 rounded-lg shadow-lg text-white font-bold ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`; t.textContent = message; c.prepend(t); setTimeout(() => t.remove(), 4000); }
         function openModal(title, content, modalClasses = 'max-w-2xl') { const mC = document.getElementById('modal-container'); mC.innerHTML = `<div class="modal fixed inset-0 bg-black bg-opacity-50" style="display:flex; align-items:center; justify-content:center; z-index: 100;"><div class="modal-content ${modalClasses} w-full m-4 p-6 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center mb-4 border-b pb-2 no-print"><h2 class="text-2xl font-bold">${title}</h2><button class="close-modal-btn text-3xl">×</button></div><div>${content}</div></div></div>`; mC.querySelector('.close-modal-btn').addEventListener('click', () => mC.innerHTML = ''); }
         function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
@@ -434,19 +413,16 @@
             const customerView = document.getElementById('customer-view');
             customerView.innerHTML = `
                 <div id="customer-main-content">
-                    <!-- Pages will be injected here -->
                     <div id="customer-page-home" class="customer-page"></div>
                     <div id="customer-page-categories" class="customer-page"></div>
                     <div id="customer-page-track" class="customer-page"></div>
                 </div>
 
-                <!-- Floating Cart Button -->
                 <button id="cart-fab" class="fixed bottom-20 right-4 bg-orange-500 text-white rounded-full w-16 h-16 flex items-center justify-center shadow-lg text-2xl z-40 transition-transform hover:scale-110">
                     <i class="fa-solid fa-shopping-cart"></i>
                     <span id="cart-fab-count" class="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-white">0</span>
                 </button>
 
-                <!-- Bottom Navigation Bar -->
                 <nav class="customer-bottom-nav fixed bottom-0 left-0 right-0 bg-white shadow-lg flex justify-around p-2 border-t z-50">
                     <a href="#home" class="customer-nav-link flex flex-col items-center p-2 rounded-lg w-full text-center transition-colors">
                         <i class="fa-solid fa-store text-xl"></i><span class="text-xs mt-1">المتجر</span>
@@ -497,7 +473,7 @@
         
         function renderStoreHomePage() {
             const container = document.getElementById('customer-page-home');
-            const featuredProducts = db.products.filter(p => p.isFeatured && p.stock > 0);
+            const featuredProducts = db.products.filter(p => p.isFeatured && getAvailableStock(p.id) > 0); //--[ CHANGED ]--
             container.innerHTML = `
                  <header class="bg-white sticky top-0 z-30 p-4">
                     <div class="flex items-center justify-between">
@@ -755,7 +731,7 @@
                 showToast(`أهلاً بعودتك ${customer.name}!`, 'success');
             }
         }
-
+        
         function renderOrderTrackingPage(token) {
             window.addEventListener('storage', globalStorageListener);
             // Switch to the main customer view container to show the tracking page
@@ -788,21 +764,39 @@
                     <button id="submit-rating-btn" class="btn-primary w-full mt-2">إرسال التقييم</button>
                 </div>` : (order.rating ? `<div class="mt-4 text-center text-gray-500">شكراً لتقييمك!</div>` : '');
 
-            const statuses = ['pending', 'in_progress', 'out_for_delivery', 'delivered'];
-            const statusTexts = { pending: 'تم الاستلام', in_progress: 'قيد التجهيز', out_for_delivery: 'في الطريق إليك', delivered: 'تم التوصيل', cancelled: 'ملغي' };
-            const statusIcons = { pending: 'fa-receipt', in_progress: 'fa-box-open', out_for_delivery: 'fa-truck-fast', delivered: 'fa-house-circle-check', cancelled: 'fa-ban' };
+            //--[ CHANGED ]-- Added new status for driver confirmation
+            const statuses = ['pending', 'in_progress', 'awaiting_driver_confirmation', 'out_for_delivery', 'delivered'];
+            const statusTexts = { 
+                pending: 'تم الاستلام', 
+                in_progress: 'قيد التجهيز', 
+                awaiting_driver_confirmation: 'بانتظار تأكيد السائق', //--[ NEW ]--
+                out_for_delivery: 'في الطريق إليك', 
+                delivered: 'تم التوصيل', 
+                cancelled: 'ملغي' 
+            };
+            const statusIcons = { 
+                pending: 'fa-receipt', 
+                in_progress: 'fa-box-open', 
+                awaiting_driver_confirmation: 'fa-motorcycle', //--[ NEW ]--
+                out_for_delivery: 'fa-truck-fast', 
+                delivered: 'fa-house-circle-check', 
+                cancelled: 'fa-ban' 
+            };
             const currentStatusIndex = statuses.indexOf(order.status);
             
             let stepsHtml = '';
-            statuses.forEach((status, i) => {
-                const isCompleted = i < currentStatusIndex;
-                const isActive = i === currentStatusIndex;
+            //--[ CHANGED ]-- Filter out the driver confirmation step from the customer's view for simplicity
+            const customerVisibleStatuses = statuses.filter(s => s !== 'awaiting_driver_confirmation');
+            customerVisibleStatuses.forEach((status, i) => {
+                const stepOrder = statuses.indexOf(status); // Original index
+                const isCompleted = stepOrder < currentStatusIndex;
+                const isActive = stepOrder === currentStatusIndex || (status === 'out_for_delivery' && order.status === 'awaiting_driver_confirmation');
                 stepsHtml += `<div class="step-item flex-1 ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}"><div class="step-icon-wrapper"><i class="fa-solid ${statusIcons[status]}"></i></div><p class="step-label">${statusTexts[status]}</p></div>`;
-                if (i < statuses.length - 1) { stepsHtml += `<div class="flex-auto border-t-2 step-connector ${isCompleted ? 'completed' : ''}"></div>`; }
+                if (i < customerVisibleStatuses.length - 1) { stepsHtml += `<div class="flex-auto border-t-2 step-connector ${isCompleted ? 'completed' : ''}"></div>`; }
             });
 
             let deliveryInfoHtml = '';
-            if (order.status === 'out_for_delivery' && driver) {
+            if ((order.status === 'out_for_delivery' || order.status === 'awaiting_driver_confirmation') && driver) { //--[ CHANGED ]--
                 deliveryInfoHtml = `
                 <div class="mt-4 flex items-center justify-center gap-4 bg-green-50 p-3 rounded-lg">
                     <p class="text-gray-600">السائق: <strong class="text-green-800">${driver.name}</strong></p>
@@ -883,7 +877,8 @@
                 const matchesSearch = name.includes(searchTerm);
                 const matchesCategory = activeCategory === 'all' || p.category === activeCategory;
                 const matchesGemini = !geminiFilter || geminiFilter.includes(name);
-                return (matchesSearch || !!geminiFilter) && matchesCategory && matchesGemini && !p.isFeatured;
+                //--[ CHANGED ]-- Filter out products with no available stock
+                return (matchesSearch || !!geminiFilter) && matchesCategory && matchesGemini && !p.isFeatured && getAvailableStock(p.id) > 0;
             });
 
             if (sortOrder === 'price-asc') products.sort((a, b) => getProductPrice(a) - getProductPrice(b));
@@ -895,7 +890,9 @@
         function getProductPrice(product) { const promo = (db.promotions || []).find(p => (p.productIds || []).includes(product.id)); return promo ? product.price * (1 - promo.discount) : product.price; }
 
         function createProductCard(product) {
-            const finalPrice = getProductPrice(product); const hasPromo = finalPrice < product.price; const quantityInCart = cart[product.id] || 0; const isOutOfStock = product.stock <= 0;
+            const finalPrice = getProductPrice(product); const hasPromo = finalPrice < product.price; const quantityInCart = cart[product.id] || 0;
+            const availableStock = getAvailableStock(product.id); //--[ CHANGED ]--
+            const isOutOfStock = availableStock <= 0; //--[ CHANGED ]--
             let actionButtonHtml = isOutOfStock 
                 ? `<div class="text-center text-red-500 font-bold p-2 w-32">نفدت الكمية</div>` 
                 : quantityInCart > 0 
@@ -930,9 +927,17 @@
 
         function updateCart(productId, change) {
             const product = getDB().products.find(p => p.id == productId); if(!product) return;
+            const availableStock = getAvailableStock(product.id); //--[ CHANGED ]--
             let currentQty = cart[productId] || 0; currentQty += change;
             if (currentQty < 0) currentQty = 0;
-            if (currentQty > product.stock) { currentQty = product.stock; showToast(`الكمية المتاحة هي ${product.stock} فقط.`, 'error'); }
+
+            //--[ CHANGED ]-- Check against available stock (real stock - reserved) instead of total stock
+            const cartQtyOfOthers = currentQty - (cart[productId] || 0);
+            if (cartQtyOfOthers > availableStock) {
+                 showToast(`الكمية المتاحة هي ${availableStock} فقط.`, 'error');
+                 return; // Do not update cart
+            }
+
             if (currentQty > 0) cart[productId] = currentQty; else delete cart[productId];
             saveCart(); 
             
@@ -942,9 +947,9 @@
             const quantityInCart = cart[productId] || 0;
             const actionArea = card.querySelector('.flex-shrink-0:last-child');
             if (actionArea) {
-                const isOutOfStock = product.stock <= 0;
+                const isOutOfStock = availableStock <= 0;
                 let newActionHtml = '';
-                if (isOutOfStock) { newActionHtml = `<div class="text-center text-red-500 font-bold p-2 w-32">نفدت الكمية</div>`; } 
+                if (isOutOfStock && quantityInCart === 0) { newActionHtml = `<div class="text-center text-red-500 font-bold p-2 w-32">نفدت الكمية</div>`; } 
                 else if (quantityInCart > 0) { newActionHtml = `<div class="flex items-center justify-center gap-2 bg-gray-200 rounded-full p-1"><button class="update-cart-btn bg-white rounded-full h-8 w-8 font-bold text-lg" data-id="${product.id}" data-change="-1">-</button><span class="font-bold text-lg w-8 text-center">${quantityInCart}</span><button class="update-cart-btn bg-white rounded-full h-8 w-8 font-bold text-lg" data-id="${product.id}" data-change="1">+</button></div>`; } 
                 else { newActionHtml = `<button class="update-cart-btn btn-primary btn-sm w-32 bg-orange-500 hover:bg-orange-600" data-id="${product.id}" data-change="1">أضف للسلة</button>`; }
                 actionArea.innerHTML = newActionHtml;
@@ -971,7 +976,14 @@
 
             db.counters.order++; const orderId = db.counters.order;
             let subtotal = 0;
-            const orderItems = Object.entries(cart).map(([productId, quantity]) => { const product = db.products.find(p => p.id == productId); product.stock -= quantity; const finalPrice = getProductPrice(product); subtotal += finalPrice * quantity; return { productId: Number(productId), name: product.name, quantity, price: finalPrice }; });
+            const orderItems = Object.entries(cart).map(([productId, quantity]) => {
+                const product = db.products.find(p => p.id == productId);
+                //--[ REMOVED ]-- Stock is no longer deducted here. It's deducted on admin confirmation.
+                // product.stock -= quantity; 
+                const finalPrice = getProductPrice(product); 
+                subtotal += finalPrice * quantity; 
+                return { productId: Number(productId), name: product.name, quantity, price: finalPrice }; 
+            });
             const total = subtotal + (db.settings.shippingFee || 0);
             let customer = db.customers.find(c => c.phone === phone); if (!customer) { db.counters.customer++; customer = { id: db.counters.customer, name: customerName, phone, address, points: 0, tags: ['New'] }; db.customers.push(customer); } else { customer.address = address; }
             customer.points = (customer.points || 0) + Math.floor(total * (db.settings.pointsPerKWD || 100));
@@ -998,10 +1010,12 @@
                 return;
             }
 
-            const assignedOrders = db.orders.filter(o => o.driverId === driverId && o.status === 'out_for_delivery');
+            //--[ CHANGED ]-- Separated orders for new confirmation logic
+            const newAssignedOrders = db.orders.filter(o => o.driverId === driverId && o.status === 'awaiting_driver_confirmation');
+            const activeOrders = db.orders.filter(o => o.driverId === driverId && o.status === 'out_for_delivery');
             const today = new Date().toDateString();
             const completedToday = db.orders.filter(o => o.driverId === driverId && o.status === 'delivered' && new Date(o.timestamp).toDateString() === today);
-            const cashToCollect = assignedOrders.filter(o => o.paymentMethod === 'cash').reduce((sum, o) => sum + o.total, 0);
+            const cashToCollect = activeOrders.filter(o => o.paymentMethod === 'cash').reduce((sum, o) => sum + o.total, 0);
 
             const paymentTag = (method) => {
                 if (method === 'online') {
@@ -1010,7 +1024,33 @@
                 return `<span class="text-xs font-bold bg-orange-100 text-orange-800 px-2 py-1 rounded-full"><i class="fa-solid fa-money-bill mr-1"></i>نقدي</span>`;
             };
 
-            const ordersHtml = assignedOrders.length > 0 ? assignedOrders.map(o => `
+            //--[ NEW ]-- Card for newly assigned orders needing confirmation
+            const newOrdersHtml = newAssignedOrders.length > 0 ? newAssignedOrders.map(o => `
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-4 border-4 border-blue-500 animate-pulse">
+                    <div class="p-4">
+                        <div class="text-center mb-3">
+                            <p class="font-bold text-lg text-blue-600">لديك طلب جديد!</p>
+                            <p class="text-sm">الرجاء القبول أو الرفض خلال <span id="timer-${o.id}" class="font-bold">60</span> ثانية</p>
+                        </div>
+                         <div class="grid grid-cols-2 gap-4 text-center text-sm mb-3">
+                            <div>
+                                <p class="font-semibold text-gray-500">من (استلام)</p>
+                                <p class="font-bold"><i class="fa-solid fa-store text-green-500"></i> ${db.settings.storeName}</p>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-500">إلى (تسليم)</p>
+                                <p class="font-bold"><i class="fa-solid fa-location-dot text-red-500"></i> ${o.customerAddress}</p>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t flex gap-2">
+                             <button class="accept-order-btn flex-1 text-center btn-primary bg-green-500 hover:bg-green-600" data-order-id="${o.id}"><i class="fa-solid fa-check mr-2"></i>قبول</button>
+                             <button class="reject-order-btn flex-1 text-center btn-primary bg-red-500 hover:bg-red-600" data-order-id="${o.id}"><i class="fa-solid fa-times mr-2"></i>رفض</button>
+                        </div>
+                    </div>
+                </div>`).join('') : '';
+
+
+            const activeOrdersHtml = activeOrders.length > 0 ? activeOrders.map(o => `
                 <div class="bg-white rounded-xl shadow-md overflow-hidden mb-4">
                      <div id="driver-map-${o.id}" class="map-container"></div>
                     <div class="p-4">
@@ -1026,14 +1066,14 @@
                             </div>
                         </div>
                         <div class="mt-4 pt-4 border-t flex gap-2">
-                             <a href="https://www.google.com/maps/dir/?api=1&destination=${o.location.lat},${o.location.lng}" target="_blank" class="flex-1 text-center btn-primary bg-blue-500 hover:bg-blue-600 btn-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>ابدأ الملاحة</a>
+                             <a href="https://maps.google.com/maps?daddr=${o.location.lat},${o.location.lng}&saddr=${db.settings.storeLocation.lat},${db.settings.storeLocation.lng}" target="_blank" class="flex-1 text-center btn-primary bg-blue-500 hover:bg-blue-600 btn-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>ابدأ الملاحة</a>
                             <button class="open-chat-btn flex-1 text-center btn-primary bg-sky-500 hover:bg-sky-600 btn-sm" data-order-id="${o.id}"><i class="fa-solid fa-comments mr-2"></i>محادثة</button>
                         </div>
                         <div class="mt-2">
                             <button class="w-full btn-primary bg-green-600 hover:bg-green-700 btn-sm mark-delivered-btn" data-order-id="${o.id}"><i class="fa-solid fa-check-double mr-2"></i>تأكيد التوصيل</button>
                         </div>
                     </div>
-                </div>`).join('') : `<div class="text-center text-gray-500 p-8 bg-white rounded-lg shadow"><i class="fa-solid fa-box-open text-4xl text-gray-300"></i><p class="mt-4">لا توجد طلبات معينة لك حالياً.</p></div>`;
+                </div>`).join('') : (newAssignedOrders.length === 0 ? `<div class="text-center text-gray-500 p-8 bg-white rounded-lg shadow"><i class="fa-solid fa-box-open text-4xl text-gray-300"></i><p class="mt-4">لا توجد طلبات معينة لك حالياً.</p></div>` : '');
             
             portalView.innerHTML = `
                 <header class="bg-white shadow-md sticky top-0 z-10">
@@ -1065,15 +1105,35 @@
                     </div>
                 </header>
                 <main class="p-4">
-                    <h2 class="text-xl font-bold mb-4">الطلبات الحالية (${assignedOrders.length})</h2>
-                    <div id="driver-orders-list">${ordersHtml}</div>
+                    ${newOrdersHtml}
+                    <h2 class="text-xl font-bold mb-4 mt-4">الطلبات الحالية (${activeOrders.length})</h2>
+                    <div id="driver-orders-list">${activeOrdersHtml}</div>
                 </main>`;
             
             // Initialize maps for each order card
             setTimeout(() => {
-                assignedOrders.forEach(o => initDriverOrderMap(o));
+                activeOrders.forEach(o => initDriverOrderMap(o));
             }, 100);
 
+            //--[ NEW ]-- Event listeners and timers for new orders
+            newAssignedOrders.forEach(order => {
+                const timerEl = document.getElementById(`timer-${order.id}`);
+                let timeLeft = 60;
+                
+                const intervalId = setInterval(() => {
+                    timeLeft--;
+                    if (timerEl) timerEl.textContent = timeLeft;
+                    if (timeLeft <= 0) {
+                        clearInterval(intervalId);
+                        handleDriverResponse(order.id, false); // Auto-reject
+                    }
+                }, 1000);
+
+                driverTimers[order.id] = { intervalId }; // Store to clear later
+            });
+            document.querySelectorAll('.accept-order-btn').forEach(btn => btn.addEventListener('click', e => handleDriverResponse(Number(e.currentTarget.dataset.orderId), true)));
+            document.querySelectorAll('.reject-order-btn').forEach(btn => btn.addEventListener('click', e => handleDriverResponse(Number(e.currentTarget.dataset.orderId), false)));
+            
             document.getElementById('driver-logout-btn').addEventListener('click', logout);
             
             document.querySelectorAll('.mark-delivered-btn').forEach(btn => {
@@ -1095,6 +1155,32 @@
                 btn.addEventListener('click', e => openChatModal(Number(e.currentTarget.dataset.orderId), 'driver'));
             });
         }
+        
+        //--[ NEW ]-- Handle driver accepting or rejecting an order
+        function handleDriverResponse(orderId, accepted) {
+            const order = db.orders.find(o => o.id === orderId);
+            if (!order || order.status !== 'awaiting_driver_confirmation') return;
+
+            // Clear the timer
+            if (driverTimers[orderId]) {
+                clearInterval(driverTimers[orderId].intervalId);
+                delete driverTimers[orderId];
+            }
+
+            if (accepted) {
+                order.status = 'out_for_delivery';
+                showToast(`تم قبول الطلب #${orderId}`, 'success');
+            } else {
+                order.status = 'in_progress'; // Return to admin's queue
+                order.driverId = null; // Un-assign driver
+                showToast(`تم رفض الطلب #${orderId}`, 'error');
+            }
+            
+            saveDB();
+            localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() }));
+            renderDriverPortal(currentUser.id);
+        }
+
 
         function handleDriverStorageEvent(event) {
             const oldDbData = JSON.stringify(db);
@@ -1102,8 +1188,8 @@
             const newDbData = JSON.stringify(db);
 
             if (oldDbData !== newDbData && currentUser && currentUser.type === 'driver') {
-                const oldOrders = JSON.parse(oldDbData).orders.filter(o => o.driverId === currentUser.id && o.status === 'out_for_delivery').length;
-                const newOrders = db.orders.filter(o => o.driverId === currentUser.id && o.status === 'out_for_delivery').length;
+                const oldOrders = JSON.parse(oldDbData).orders.filter(o => o.driverId === currentUser.id && o.status === 'awaiting_driver_confirmation').length;
+                const newOrders = db.orders.filter(o => o.driverId === currentUser.id && o.status === 'awaiting_driver_confirmation').length;
                 
                 if (newOrders > oldOrders) {
                     playDriverNotificationSound();
@@ -1127,8 +1213,7 @@
             const content = `
                 <div id="chat-modal-content" data-order-id="${orderId}" class="flex flex-col h-[70vh]">
                     <div id="chat-messages" class="flex-grow overflow-y-auto p-4 bg-gray-100 rounded-t-lg space-y-4">
-                        <!-- Messages will be rendered here -->
-                    </div>
+                        </div>
                     <form id="chat-form" class="p-4 border-t flex gap-2">
                         <input id="chat-input" class="flex-grow p-2 border rounded-full" placeholder="اكتب رسالتك..." autocomplete="off">
                         <button type="submit" class="btn-primary rounded-full !p-3 h-12 w-12 flex items-center justify-center"><i class="fa-solid fa-paper-plane"></i></button>
@@ -1154,10 +1239,26 @@
             loadDB(); // Ensure we have the latest messages
             const messages = db.chats[orderId] || [];
             messagesContainer.innerHTML = messages.map(msg => {
+                //--[ CHANGED ]-- Logic to handle admin messages and different views
                 const isMine = msg.sender === userType;
+                const isAdminMsg = msg.sender === 'admin';
+                
+                let alignment = 'justify-start';
+                if (isMine) alignment = 'justify-end';
+                if (isAdminMsg && userType !== 'admin') alignment = 'justify-center'; // Center admin messages for others
+
+                let bubbleClass = 'bg-gray-200 text-gray-800 rounded-bl-none'; // Default for other party
+                if (isMine) bubbleClass = 'bg-blue-500 text-white rounded-br-none'; // My messages
+                if (isAdminMsg) bubbleClass = 'bg-purple-100 text-purple-800 border border-purple-300'; // Admin messages
+                
+                let senderName = '';
+                if(isAdminMsg) senderName = `<p class="font-bold text-xs text-purple-600">المدير</p>`;
+
+
                 return `
-                    <div class="flex ${isMine ? 'justify-end' : 'justify-start'}">
-                        <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${isMine ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-bl-none'}">
+                    <div class="flex ${alignment}">
+                        <div class="max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${bubbleClass}">
+                            ${senderName}
                             <p>${msg.text}</p>
                             <p class="text-xs opacity-75 mt-1 text-right">${new Date(msg.timestamp).toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'})}</p>
                         </div>
@@ -1209,9 +1310,7 @@
                         position: order.location,
                         map,
                         title: `طلب #${order.id} - ${order.customerName}`,
-                        icon: {
-                            url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png"
-                        }
+                        icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
                     });
                 }
             });
@@ -1223,9 +1322,7 @@
                         position: driver.location,
                         map,
                         title: `السائق: ${driver.name}`,
-                         icon: {
-                            url: "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"
-                        }
+                         icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
                     });
                 }
             });
@@ -1242,11 +1339,23 @@
                 mapId: `DRIVER_MAP_${order.id}`
             });
 
-            const driverMarker = new google.maps.Marker({ position: driver.location, map, title: "موقعك الحالي" });
-            const customerMarker = new google.maps.Marker({ position: order.location, map, title: `موقع العميل: ${order.customerName}` });
+            //--[ CHANGED ]-- Add store marker for pickup point
+            const storeMarker = new google.maps.Marker({ 
+                position: db.settings.storeLocation, 
+                map, 
+                title: `نقطة الاستلام: ${db.settings.storeName}`,
+                icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+             });
+
+            const customerMarker = new google.maps.Marker({ 
+                position: order.location, 
+                map, 
+                title: `نقطة التسليم: ${order.customerName}`,
+                icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+            });
 
             const bounds = new google.maps.LatLngBounds();
-            bounds.extend(driverMarker.getPosition());
+            bounds.extend(storeMarker.getPosition());
             bounds.extend(customerMarker.getPosition());
             map.fitBounds(bounds);
 
@@ -1300,7 +1409,7 @@
                 map,
                 title: `السائق: ${driver.name}`,
                 icon: {
-                    url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png",
+                    url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png", // Different icon
                     scaledSize: new google.maps.Size(40, 40),
                 }
             });
@@ -1332,6 +1441,8 @@
             // Clear all map intervals and instances when view changes
             Object.values(driverIntervals).forEach(clearInterval);
             driverIntervals = {};
+            Object.values(driverTimers).forEach(t => clearInterval(t.intervalId)); //--[ NEW ]--
+            driverTimers = {}; //--[ NEW ]--
             mapInstances = {};
 
             if (!currentUser) { renderPublicView(); return; }
@@ -1370,7 +1481,7 @@
         function renderDashboard() {
             const pendingOrders = db.orders.filter(o => o.status === 'pending').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
             const inProgressOrders = db.orders.filter(o => o.status === 'in_progress').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-            const outForDeliveryOrders = db.orders.filter(o => o.status === 'out_for_delivery').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+            const outForDeliveryOrders = db.orders.filter(o => o.status === 'out_for_delivery' || o.status === 'awaiting_driver_confirmation').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)); //--[ CHANGED ]--
             const lowStockProducts = db.products.filter(p => p.stock > 0 && p.stock <= (p.lowStockThreshold || 5));
 
             const createOrderCard = (order) => {
@@ -1422,7 +1533,23 @@
             `;
             renderPage('page-dashboard', content, () => {
                 document.querySelectorAll('.view-order-btn').forEach(btn => btn.addEventListener('click', e => handleViewOrder(Number(btn.dataset.id))));
-                document.querySelectorAll('.start-processing-btn').forEach(btn => btn.addEventListener('click', e => { const order = db.orders.find(o => o.id === Number(btn.dataset.id)); if(order) { order.status = 'in_progress'; saveDB(); localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() })); renderDashboard(); } }));
+                //--[ CHANGED ]-- Deduct stock when admin confirms order
+                document.querySelectorAll('.start-processing-btn').forEach(btn => btn.addEventListener('click', e => { 
+                    const order = db.orders.find(o => o.id === Number(btn.dataset.id)); 
+                    if(order) { 
+                        // Deduct stock from inventory NOW
+                        order.items.forEach(item => {
+                            const product = db.products.find(p => p.id === item.productId);
+                            if (product) {
+                                product.stock -= item.quantity;
+                            }
+                        });
+                        order.status = 'in_progress'; 
+                        saveDB(); 
+                        localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() })); 
+                        renderDashboard(); 
+                    } 
+                }));
                 document.querySelectorAll('.assign-driver-btn').forEach(btn => btn.addEventListener('click', e => openDeliveryModal(Number(btn.dataset.id))));
                 
                 // Tab logic
@@ -1447,27 +1574,55 @@
         function openDeliveryModal(orderId) {
             const order = db.orders.find(o => o.id === orderId);
             const driverOptions = db.drivers.map(d => `<option value="${d.id}" ${order.driverId === d.id ? 'selected' : ''}>${d.name}</option>`).join('');
-            const content = `<form id="delivery-form" class="space-y-4"><p>سيتم تحديث حالة الطلب إلى "جاري التوصيل".</p><label>اختر السائق:</label><select name="driverId" class="p-2 border rounded w-full">${driverOptions}</select><button type="submit" class="btn-primary w-full bg-purple-500">تأكيد وتعيين</button></form>`;
+            const content = `<form id="delivery-form" class="space-y-4"><p>سيتم إرسال الطلب للسائق لتأكيده.</p><label>اختر السائق:</label><select name="driverId" class="p-2 border rounded w-full">${driverOptions}</select><button type="submit" class="btn-primary w-full bg-purple-500">تأكيد وتعيين</button></form>`;
             openModal('تعيين سائق للتوصيل', content);
             document.getElementById('delivery-form').addEventListener('submit', e => {
                 e.preventDefault();
                 const driverId = Number(e.target.driverId.value);
                 const driver = db.drivers.find(d => d.id === driverId);
                 if (!driver) { showToast('الرجاء اختيار سائق', 'error'); return; }
-                order.status = 'out_for_delivery';
+                //--[ CHANGED ]-- Set to new status for driver confirmation
+                order.status = 'awaiting_driver_confirmation';
                 order.driverId = driverId;
-                // Simulate driver starting from store location if not already set
                 if (!driver.location) driver.location = db.settings.storeLocation;
                 saveDB();
                 localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() }));
                 renderDashboard();
                 closeModal();
-                showToast('تم تعيين السائق وتحديث حالة الطلب.');
+                showToast('تم إرسال الطلب للسائق للتأكيد.');
             });
         }
 
-        function renderInventory() { const content = `<div class="flex flex-col md:flex-row justify-between items-center mb-6"><h2 class="text-2xl font-bold">المخزون</h2><button id="add-product-btn" class="btn-primary mt-4 md:mt-0">إضافة منتج جديد</button></div><div id="inventory-list" class="bg-white rounded-lg shadow overflow-hidden"><table class="min-w-full"><thead class="bg-gray-50"><tr><th class="p-3 text-right">المنتج</th><th class="p-3 text-center">السعر</th><th class="p-3 text-center">الكمية</th><th class="p-3"></th></tr></thead><tbody class="divide-y"></tbody></table></div>`; renderPage('page-inventory', content, () => { document.getElementById('add-product-btn').addEventListener('click', () => handleAddEditProduct()); displayInventory(); }); }
-        function displayInventory() { const list = document.querySelector('#inventory-list tbody'); if(!list) return; list.innerHTML = db.products.map(p => `<tr class="hover:bg-gray-50"> <td class="p-3 font-semibold">${p.name}</td> <td class="p-3 text-center">${p.price.toFixed(3)}</td> <td class="p-3 text-center">${p.stock}</td> <td class="p-3 text-left whitespace-nowrap"><button class="edit-product-btn text-blue-500 hover:text-blue-700" data-id="${p.id}"><i class="fa-solid fa-pen-to-square"></i></button><button class="delete-product-btn text-red-500 hover:text-red-700 mr-3" data-id="${p.id}"><i class="fa-solid fa-trash"></i></button></td> </tr>`).join('') || '<tr><td colspan="4" class="text-center p-4">لا توجد منتجات.</td></tr>'; document.querySelectorAll('.edit-product-btn').forEach(b => b.addEventListener('click', e => handleAddEditProduct(Number(e.currentTarget.closest('td').querySelector('.edit-product-btn').dataset.id)))); document.querySelectorAll('.delete-product-btn').forEach(b => b.addEventListener('click', e => { if(confirm('هل أنت متأكد من الحذف؟')) { db.products = db.products.filter(p => p.id !== Number(e.currentTarget.closest('td').querySelector('.delete-product-btn').dataset.id)); saveDB(); displayInventory(); showToast('تم حذف المنتج.'); }})); }
+        function renderInventory() { const content = `<div class="flex flex-col md:flex-row justify-between items-center mb-6"><h2 class="text-2xl font-bold">المخزون</h2><button id="add-product-btn" class="btn-primary mt-4 md:mt-0">إضافة منتج جديد</button></div><div id="inventory-list" class="bg-white rounded-lg shadow overflow-hidden"><table class="min-w-full"><thead class="bg-gray-50"><tr><th class="p-3 text-right">المنتج</th><th class="p-3 text-center">السعر</th><th class="p-3 text-center">الكمية الفعلية</th><th class="p-3 text-center">المحجوز</th><th class="p-3 text-center">المتاح</th><th class="p-3"></th></tr></thead><tbody class="divide-y"></tbody></table></div>`; renderPage('page-inventory', content, () => { document.getElementById('add-product-btn').addEventListener('click', () => handleAddEditProduct()); displayInventory(); }); }
+        function displayInventory() { 
+            const list = document.querySelector('#inventory-list tbody'); 
+            if(!list) return; 
+            //--[ CHANGED ]-- Added reserved and available columns
+            list.innerHTML = db.products.map(p => {
+                const reserved = getReservedStock(p.id);
+                const available = p.stock - reserved;
+                return `<tr class="hover:bg-gray-50"> 
+                    <td class="p-3 font-semibold">${p.name}</td> 
+                    <td class="p-3 text-center">${p.price.toFixed(3)}</td> 
+                    <td class="p-3 text-center font-bold">${p.stock}</td> 
+                    <td class="p-3 text-center text-orange-600">${reserved}</td>
+                    <td class="p-3 text-center text-green-600 font-bold">${available}</td>
+                    <td class="p-3 text-left whitespace-nowrap">
+                        <button class="edit-product-btn text-blue-500 hover:text-blue-700" data-id="${p.id}"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button class="delete-product-btn text-red-500 hover:text-red-700 mr-3" data-id="${p.id}"><i class="fa-solid fa-trash"></i></button>
+                    </td> 
+                </tr>`
+            }).join('') || '<tr><td colspan="6" class="text-center p-4">لا توجد منتجات.</td></tr>'; 
+            document.querySelectorAll('.edit-product-btn').forEach(b => b.addEventListener('click', e => handleAddEditProduct(Number(e.currentTarget.closest('tr').querySelector('.edit-product-btn').dataset.id)))); 
+            document.querySelectorAll('.delete-product-btn').forEach(b => b.addEventListener('click', e => { 
+                if(confirm('هل أنت متأكد من الحذف؟')) { 
+                    db.products = db.products.filter(p => p.id !== Number(e.currentTarget.closest('tr').querySelector('.delete-product-btn').dataset.id)); 
+                    saveDB(); 
+                    displayInventory(); 
+                    showToast('تم حذف المنتج.'); 
+                }
+            })); 
+        }
         function handleAddEditProduct(id = null) { 
             const isEdit = id !== null; 
             const p = isEdit ? db.products.find(prod => prod.id === id) : {}; 
@@ -1542,8 +1697,99 @@
             });
         }
         function renderOrders() { const content = `<div class="bg-white p-4 rounded-lg shadow-lg mb-6"><input id="orders-search" type="text" class="p-2 border rounded-lg w-full" placeholder="ابحث بالاسم أو رقم الطلب..."></div><div class="bg-white rounded-xl shadow-lg overflow-x-auto"><table class="min-w-full text-right"><thead class="bg-gray-50"><tr><th class="p-3">#</th><th>العميل</th><th>الإجمالي</th><th>الحالة</th><th>التاريخ</th><th class="text-left">الإجراءات</th></tr></thead><tbody id="orders-table-body"></tbody></table></div>`; renderPage('page-orders', content, () => { document.getElementById('orders-search').addEventListener('input', displayOrders); displayOrders(); }); }
-        function displayOrders() { const body = document.getElementById('orders-table-body'); if (!body) return; const searchTerm = document.getElementById('orders-search').value.toLowerCase(); const orders = getDB().orders.slice().reverse().filter(o => o.customerName.toLowerCase().includes(searchTerm) || o.id.toString().includes(searchTerm)); const statusColors = { pending: 'bg-yellow-100 text-yellow-800', in_progress: 'bg-blue-100 text-blue-800', out_for_delivery: 'bg-purple-100 text-purple-800', delivered: 'bg-green-100 text-green-800', cancelled: 'bg-red-100 text-red-800' }; const statusTexts = { pending: 'جديد', in_progress: 'قيد التجهيز', out_for_delivery: 'جاري التوصيل', delivered: 'تم التسليم', cancelled: 'ملغي' }; body.innerHTML = orders.map(order => `<tr class="border-b"> <td class="p-3">${order.id}</td> <td class="p-3">${order.customerName}</td> <td class="p-3 font-mono">${order.total.toFixed(3)}</td> <td class="p-3"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusColors[order.status] || ''}">${statusTexts[order.status] || order.status}</span></td> <td class="p-3">${new Date(order.timestamp).toLocaleDateString()}</td> <td class="p-3 text-left"><button class="view-order-btn text-blue-500 font-semibold" data-id="${order.id}">عرض</button></td> </tr>`).join(''); document.querySelectorAll('.view-order-btn').forEach(btn => btn.addEventListener('click', e => handleViewOrder(Number(e.target.dataset.id)))); }
-        function handleViewOrder(orderId) { const order = db.orders.find(o => o.id === orderId); const trackingLink = `${window.location.origin}${window.location.pathname}#track=${order.trackingToken}`; const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0); const shipping = order.total - subtotal; const driverOptions = db.drivers.map(d => `<option value="${d.id}" ${order.driverId === d.id ? 'selected' : ''}>${d.name}</option>`).join(''); const chatHistory = (db.chats[orderId] || []).map(msg => `<div class="p-2 rounded-lg ${msg.sender === 'driver' ? 'bg-sky-100' : 'bg-gray-100'} mb-2"><p class="font-bold text-sm">${msg.sender === 'driver' ? 'السائق' : 'العميل'}</p><p>${msg.text}</p><p class="text-xs text-gray-400 text-left">${timeAgo(msg.timestamp)}</p></div>`).join(''); const content = `<div class="print-area"><div class="invoice-box"><table cellpadding="0" cellspacing="0"><tr class="top"><td colspan="3"><table><tr><td><img src="${logoUrl}" style="width:100%; max-width:150px;"></td><td style="text-align:left;"><b>فاتورة #${order.id}</b><br><div id="qr-code-container" class="mt-2"></div></td></tr></table></td></tr><tr class="information"><td colspan="3"><table><tr><td><b>${db.settings.storeName}</b></td><td style="text-align:left;"><b>${order.customerName}</b><br>${order.customerPhone}<br>${order.customerAddress}</td></tr></table></td></tr><tr class="heading"><td>المنتج</td><td style="text-align:center;">الكمية</td><td style="text-align:left;">السعر</td></tr>${order.items.map(item => `<tr class="item"><td>${item.name}</td><td style="text-align:center;">${item.quantity}</td><td style="text-align:left;">${(item.price * item.quantity).toFixed(3)}</td></tr>`).join('')}<tr class="heading"><td colspan="2">الملخص</td><td></td></tr><tr><td colspan="2">المجموع الفرعي</td><td style="text-align:left;">${subtotal.toFixed(3)} د.ك</td></tr><tr><td colspan="2">كلفة التوصيل</td><td style="text-align:left;">${shipping.toFixed(3)} د.ك</td></tr><tr class="total"><td></td><td colspan="2" style="text-align:left; font-weight: bold;">الإجمالي: ${order.total.toFixed(3)} د.ك</td></tr></table></div></div><div class="mt-4 no-print flex justify-between items-center bg-gray-100 p-3 rounded-lg"><p class="text-sm">رابط التتبع: <a href="${trackingLink}" target="_blank" class="text-blue-500 underline">عرض</a></p><button id="copy-tracking-link" class="btn-primary btn-sm">نسخ</button></div><div class="mt-4 no-print"><h4 class="font-bold mb-2">تغيير حالة الطلب</h4><select id="update-status-select" class="p-2 border rounded">${Object.entries({ pending: 'جديد', in_progress: 'قيد التجهيز', out_for_delivery: 'جاري التوصيل', delivered: 'تم التسليم', cancelled: 'ملغي' }).map(([k,v]) => `<option value="${k}" ${order.status === k ? 'selected' : ''}>${v}</option>`).join('')}</select><button id="save-status-btn" class="btn-primary mr-2 btn-sm">حفظ</button></div><div class="mt-4 no-print"><label class="font-bold">تعيين سائق:</label><div class="flex gap-2 mt-2"><select id="assign-driver-select" class="p-2 border rounded flex-1"><option value="">اختر سائق...</option>${driverOptions}</select><button id="assign-driver-btn" class="btn-primary btn-sm">تعيين</button></div></div><div class="mt-4 no-print"><h4 class="font-bold mb-2">سجل المحادثة</h4><div class="border rounded-lg p-2 h-40 overflow-y-auto bg-gray-50">${chatHistory || '<p class="text-gray-400 text-center p-4">لا توجد رسائل.</p>'}</div></div><div class="mt-6 flex items-center gap-4 no-print"><button id="print-receipt-btn" class="btn-primary">طباعة</button></div>`; openModal(`تفاصيل طلب #${order.id}`, content, 'max-w-4xl'); new QRCode(document.getElementById("qr-code-container"), { text: trackingLink, width: 80, height: 80 }); document.getElementById('copy-tracking-link').addEventListener('click', () => { navigator.clipboard.writeText(trackingLink); showToast('تم نسخ الرابط!'); }); document.getElementById('print-receipt-btn').addEventListener('click', () => window.print()); document.getElementById('save-status-btn').addEventListener('click', () => { const newStatus = document.getElementById('update-status-select').value; order.status = newStatus; saveDB(); localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: newStatus, timestamp: Date.now() })); displayOrders(); handleViewOrder(orderId); showToast('تم تحديث الحالة'); }); const assignBtn = document.getElementById('assign-driver-btn'); if(assignBtn) assignBtn.addEventListener('click', () => { const driverId = Number(document.getElementById('assign-driver-select').value); if(driverId) { order.driverId = driverId; if(order.status === 'in_progress' || order.status === 'pending') order.status = 'out_for_delivery'; saveDB(); localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() })); displayOrders(); handleViewOrder(orderId); showToast('تم تعيين السائق'); } else { showToast('الرجاء اختيار سائق', 'error'); } }); }
+        function displayOrders() { const body = document.getElementById('orders-table-body'); if (!body) return; const searchTerm = document.getElementById('orders-search').value.toLowerCase(); const orders = getDB().orders.slice().reverse().filter(o => o.customerName.toLowerCase().includes(searchTerm) || o.id.toString().includes(searchTerm)); const statusColors = { pending: 'bg-yellow-100 text-yellow-800', in_progress: 'bg-blue-100 text-blue-800', awaiting_driver_confirmation: 'bg-cyan-100 text-cyan-800', out_for_delivery: 'bg-purple-100 text-purple-800', delivered: 'bg-green-100 text-green-800', cancelled: 'bg-red-100 text-red-800' }; const statusTexts = { pending: 'جديد', in_progress: 'قيد التجهيز', awaiting_driver_confirmation: 'بانتظار السائق', out_for_delivery: 'جاري التوصيل', delivered: 'تم التسليم', cancelled: 'ملغي' }; body.innerHTML = orders.map(order => `<tr class="border-b"> <td class="p-3">${order.id}</td> <td class="p-3">${order.customerName}</td> <td class="p-3 font-mono">${order.total.toFixed(3)}</td> <td class="p-3"><span class="px-2 py-1 text-xs font-semibold rounded-full ${statusColors[order.status] || ''}">${statusTexts[order.status] || order.status}</span></td> <td class="p-3">${new Date(order.timestamp).toLocaleDateString()}</td> <td class="p-3 text-left"><button class="view-order-btn text-blue-500 font-semibold" data-id="${order.id}">عرض</button></td> </tr>`).join(''); document.querySelectorAll('.view-order-btn').forEach(btn => btn.addEventListener('click', e => handleViewOrder(Number(e.target.dataset.id)))); }
+        function handleViewOrder(orderId) { 
+            const order = db.orders.find(o => o.id === orderId); 
+            const trackingLink = `${window.location.origin}${window.location.pathname}#track=${order.trackingToken}`; 
+            const subtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0); 
+            const shipping = order.total - subtotal; 
+            const driverOptions = db.drivers.map(d => `<option value="${d.id}" ${order.driverId === d.id ? 'selected' : ''}>${d.name}</option>`).join(''); 
+            
+            //--[ CHANGED ]-- Admin can now see the chat and send messages
+            const chatHistory = (db.chats[orderId] || []).map(msg => {
+                 let bubbleClass = 'bg-gray-100';
+                 let senderName = msg.sender === 'customer' ? 'العميل' : 'السائق';
+                 if (msg.sender === 'admin') {
+                     bubbleClass = 'bg-purple-100';
+                     senderName = 'أنت (المدير)';
+                 }
+                 return `<div class="p-2 rounded-lg ${bubbleClass} mb-2">
+                    <p class="font-bold text-sm">${senderName}</p>
+                    <p>${msg.text}</p>
+                    <p class="text-xs text-gray-400 text-left">${timeAgo(msg.timestamp)}</p>
+                </div>`
+            }).join('');
+
+            const content = `<div class="print-area"><div class="invoice-box"><table cellpadding="0" cellspacing="0"><tr class="top"><td colspan="3"><table><tr><td><img src="${logoUrl}" style="width:100%; max-width:150px;"></td><td style="text-align:left;"><b>فاتورة #${order.id}</b><br><div id="qr-code-container" class="mt-2"></div></td></tr></table></td></tr><tr class="information"><td colspan="3"><table><tr><td><b>${db.settings.storeName}</b></td><td style="text-align:left;"><b>${order.customerName}</b><br>${order.customerPhone}<br>${order.customerAddress}</td></tr></table></td></tr><tr class="heading"><td>المنتج</td><td style="text-align:center;">الكمية</td><td style="text-align:left;">السعر</td></tr>${order.items.map(item => `<tr class="item"><td>${item.name}</td><td style="text-align:center;">${item.quantity}</td><td style="text-align:left;">${(item.price * item.quantity).toFixed(3)}</td></tr>`).join('')}<tr class="heading"><td colspan="2">الملخص</td><td></td></tr><tr><td colspan="2">المجموع الفرعي</td><td style="text-align:left;">${subtotal.toFixed(3)} د.ك</td></tr><tr><td colspan="2">كلفة التوصيل</td><td style="text-align:left;">${shipping.toFixed(3)} د.ك</td></tr><tr class="total"><td></td><td colspan="2" style="text-align:left; font-weight: bold;">الإجمالي: ${order.total.toFixed(3)} د.ك</td></tr></table></div></div><div class="mt-4 no-print flex justify-between items-center bg-gray-100 p-3 rounded-lg"><p class="text-sm">رابط التتبع: <a href="${trackingLink}" target="_blank" class="text-blue-500 underline">عرض</a></p><button id="copy-tracking-link" class="btn-primary btn-sm">نسخ</button></div><div class="mt-4 no-print"><h4 class="font-bold mb-2">تغيير حالة الطلب</h4><select id="update-status-select" class="p-2 border rounded">${Object.entries({ pending: 'جديد', in_progress: 'قيد التجهيز', awaiting_driver_confirmation: 'بانتظار السائق', out_for_delivery: 'جاري التوصيل', delivered: 'تم التسليم', cancelled: 'ملغي' }).map(([k,v]) => `<option value="${k}" ${order.status === k ? 'selected' : ''}>${v}</option>`).join('')}</select><button id="save-status-btn" class="btn-primary mr-2 btn-sm">حفظ</button></div><div class="mt-4 no-print"><label class="font-bold">تعيين سائق:</label><div class="flex gap-2 mt-2"><select id="assign-driver-select" class="p-2 border rounded flex-1"><option value="">اختر سائق...</option>${driverOptions}</select><button id="assign-driver-btn" class="btn-primary btn-sm">تعيين</button></div></div><div class="mt-4 no-print"><h4 class="font-bold mb-2">سجل المحادثة</h4><div class="border rounded-lg p-2 h-40 overflow-y-auto bg-gray-50" id="admin-chat-history">${chatHistory || '<p class="text-gray-400 text-center p-4">لا توجد رسائل.</p>'}</div><form id="admin-chat-form" class="flex gap-2 mt-2"><input id="admin-chat-input" class="flex-grow p-2 border rounded" placeholder="أرسل رسالة للعميل والسائق..."><button type="submit" class="btn-primary btn-sm">إرسال</button></form></div><div class="mt-6 flex items-center gap-4 no-print"><button id="print-receipt-btn" class="btn-primary">طباعة</button></div>`; 
+            openModal(`تفاصيل طلب #${order.id}`, content, 'max-w-4xl'); 
+            new QRCode(document.getElementById("qr-code-container"), { text: trackingLink, width: 80, height: 80 }); 
+            document.getElementById('copy-tracking-link').addEventListener('click', () => { navigator.clipboard.writeText(trackingLink); showToast('تم نسخ الرابط!'); }); 
+            document.getElementById('print-receipt-btn').addEventListener('click', () => window.print()); 
+            
+            //--[ CHANGED ]-- Add listener for admin chat form
+            document.getElementById('admin-chat-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const input = document.getElementById('admin-chat-input');
+                const text = input.value.trim();
+                if (text) {
+                    handleSendMessage(orderId, 'admin', text);
+                    input.value = '';
+                    // Re-render chat history in the modal
+                    const updatedHistory = (db.chats[orderId] || []).map(msg => {
+                        let bubbleClass = 'bg-gray-100';
+                        let senderName = msg.sender === 'customer' ? 'العميل' : 'السائق';
+                        if (msg.sender === 'admin') {
+                            bubbleClass = 'bg-purple-100';
+                            senderName = 'أنت (المدير)';
+                        }
+                        return `<div class="p-2 rounded-lg ${bubbleClass} mb-2"><p class="font-bold text-sm">${senderName}</p><p>${msg.text}</p><p class="text-xs text-gray-400 text-left">${timeAgo(msg.timestamp)}</p></div>`
+                    }).join('');
+                    document.getElementById('admin-chat-history').innerHTML = updatedHistory;
+                }
+            });
+
+            //--[ CHANGED ]-- Add logic to return stock on cancellation
+            document.getElementById('save-status-btn').addEventListener('click', () => { 
+                const oldStatus = order.status;
+                const newStatus = document.getElementById('update-status-select').value; 
+                if (oldStatus !== newStatus && newStatus === 'cancelled') {
+                    // Only return stock if order was confirmed (stock was deducted)
+                    if (oldStatus === 'in_progress' || oldStatus === 'out_for_delivery' || oldStatus === 'awaiting_driver_confirmation') {
+                         order.items.forEach(item => {
+                            const product = db.products.find(p => p.id === item.productId);
+                            if (product) {
+                                product.stock += item.quantity;
+                            }
+                        });
+                        showToast('تم إرجاع كميات الطلب إلى المخزون.');
+                    }
+                }
+                order.status = newStatus; 
+                saveDB(); 
+                localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: newStatus, timestamp: Date.now() })); 
+                displayOrders(); 
+                handleViewOrder(orderId); 
+                showToast('تم تحديث الحالة'); 
+            }); 
+            const assignBtn = document.getElementById('assign-driver-btn'); 
+            if(assignBtn) assignBtn.addEventListener('click', () => { 
+                const driverId = Number(document.getElementById('assign-driver-select').value); 
+                if(driverId) { 
+                    order.driverId = driverId; 
+                    if(order.status === 'in_progress' || order.status === 'pending') {
+                        order.status = 'awaiting_driver_confirmation'; //--[ CHANGED ]--
+                    }
+                    saveDB(); 
+                    localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() })); 
+                    displayOrders(); 
+                    handleViewOrder(orderId); 
+                    showToast('تم تعيين السائق'); 
+                } else { 
+                    showToast('الرجاء اختيار سائق', 'error'); 
+                } 
+            }); 
+        }
+
         function renderCustomers() { const content = `<div class="flex flex-col md:flex-row justify-between items-center mb-6"><h2 class="text-2xl font-bold">العملاء</h2><div class="mt-4 md:mt-0"><button id="send-bulk-msg-btn" class="btn-primary bg-sky-500 hover:bg-sky-600 mr-2">رسالة جماعية</button><button id="export-customers-btn" class="btn-primary bg-green-600 hover:bg-green-700">تصدير Excel</button></div></div><div class="mb-4"><input id="customers-search" type="text" class="w-full p-3 border rounded-lg" placeholder="ابحث باسم العميل أو رقمه..."></div><div class="bg-white rounded-xl shadow-lg overflow-x-auto"><table class="min-w-full text-right"><thead class="bg-gray-50"><tr><th class="p-3">العميل</th><th>الهاتف</th><th>النقاط</th><th>الإجراءات</th></tr></thead><tbody id="customers-table-body"></tbody></table></div>`; renderPage('page-customers', content, () => { document.getElementById('customers-search').addEventListener('input', displayCustomers); document.getElementById('send-bulk-msg-btn').addEventListener('click', handleBulkMessage); document.getElementById('export-customers-btn').addEventListener('click', exportCustomersToExcel); displayCustomers(); }); }
         function displayCustomers() { const body = document.getElementById('customers-table-body'); if (!body) return; const searchTerm = document.getElementById('customers-search').value.toLowerCase(); const customers = getDB().customers.filter(c => c.name.toLowerCase().includes(searchTerm) || c.phone.includes(searchTerm)); body.innerHTML = customers.map(c => `<tr class="border-b"><td class="p-3">${c.name}</td><td>${c.phone}</td><td>${c.points || 0}</td><td><button class="view-customer-btn text-blue-500" data-id="${c.id}">عرض</button></td></tr>`).join(''); document.querySelectorAll('.view-customer-btn').forEach(btn => btn.addEventListener('click', e => handleViewCustomer(Number(e.target.dataset.id)))); }
         function handleViewCustomer(customerId) {
@@ -1631,7 +1877,7 @@
                                     <span class="font-bold">${completedOrdersCount}</span>
                                 </div>
                             </div>
-                            <button class="view-driver-details-btn mt-auto w-full btn-primary btn-sm bg-gray-200 text-gray-800 hover:bg-gray-300">عرض التفاصيل</button>
+                            <button class="edit-driver-btn mt-auto w-full btn-primary btn-sm bg-gray-200 text-gray-800 hover:bg-gray-300" data-id="${d.id}">تعديل البيانات</button>
                         </div>`;
                     }).join('')}
                 </div>`;
