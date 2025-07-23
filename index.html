@@ -178,7 +178,7 @@
     <div id="toast-container" class="fixed top-5 right-5 z-[101] space-y-2"></div>
 
     <script type="module">
-        const DB_NAME = 'Baqaltak_v54_DATA'; //--[ CHANGED ]-- Incremented version
+        const DB_NAME = 'Baqaltak_v55_DATA'; // Incremented version
         const STATUS_EVENT_KEY = 'BAQALTAK_STATUS_EVENT';
         const CHAT_EVENT_KEY = 'BAQALTAK_CHAT_EVENT';
         const NEW_ORDER_EVENT_KEY = 'BAQALTAK_NEW_ORDER_EVENT';
@@ -187,7 +187,7 @@
         let currentUser = null; // Can be 'admin' or 'driver'
         let cart = {};
         let driverIntervals = {}; // To store simulation intervals for maps
-        let driverTimers = {}; //--[ NEW ]-- To store rejection timers for drivers
+        let driverTimers = {}; // To store rejection timers for drivers
         let mapInstances = {}; // To store initialized map objects
 
         // ----------------- GEMINI API FUNCTION -----------------
@@ -243,7 +243,6 @@
                 drivers: [{ id: 1, name: 'محمد علي', phone: '96511112222', pin: '1234', location: { lat: 29.3758, lng: 47.9832 } }],
                 returns: [],
                 chats: {},
-                //--[ CHANGED ]-- Added store location
                 settings: { 
                     storeName: 'بقالتك', 
                     whatsappNumber: '96567734409', 
@@ -257,7 +256,7 @@
             if (!db.drivers) db.drivers = [];
             if (!db.returns) db.returns = [];
             if (!db.chats) db.chats = {};
-            if (!db.settings.storeLocation) db.settings.storeLocation = { lat: 29.3696, lng: 47.9783 }; //--[ NEW ]-- Ensure store location exists
+            if (!db.settings.storeLocation) db.settings.storeLocation = { lat: 29.3696, lng: 47.9783 };
             if (!db.counters.driver) db.counters.driver = (db.drivers.length > 0) ? Math.max(...db.drivers.map(d => d.id)) : 0;
             if (!db.counters.return) db.counters.return = 0;
             if (cartData) { try { cart = JSON.parse(cartData); } catch (e) { cart = {}; } } else { cart = {}; }
@@ -266,7 +265,7 @@
         function saveCart() { localStorage.setItem(DB_NAME + '_Cart', JSON.stringify(cart)); }
         function getDB() { return db; }
         
-        //--[ NEW ]-- Inventory logic to account for reserved stock in pending orders
+        // Inventory logic to account for reserved stock in pending orders
         function getReservedStock(productId) {
             return db.orders
                 .filter(o => o.status === 'pending' || o.status === 'awaiting_driver_confirmation')
@@ -374,40 +373,76 @@
             }
         }
         
+        // Refactored to provide real-time updates for all user types
         function globalStorageListener(event) {
-            // Listener for customer tracking page
-            if (event.key === STATUS_EVENT_KEY) {
-                const currentToken = window.location.hash.substring(1).substring(6);
-                const updateInfo = JSON.parse(event.newValue);
-                if (currentToken === updateInfo.token) {
-                    playStatusUpdateSound();
-                    showToast('يتم تحديث حالة طلبك...', 'success');
-                    renderOrderTrackingPage(updateInfo.token);
-                }
-            } 
-            // Listener for chat
-            else if (event.key === CHAT_EVENT_KEY) {
-                const chatModal = document.getElementById('chat-modal-content');
-                if (chatModal) {
-                    const { orderId } = JSON.parse(event.newValue);
-                    if (chatModal.dataset.orderId == orderId) {
-                        renderChatMessages(orderId, 'customer');
+            // --- Customer View Listeners ---
+            if (currentUser === null) { 
+                // Listener for customer tracking page
+                if (event.key === STATUS_EVENT_KEY) {
+                    const currentToken = window.location.hash.substring(1).substring(6);
+                    const updateInfo = JSON.parse(event.newValue);
+                    if (currentToken === updateInfo.token) {
+                        playStatusUpdateSound();
+                        showToast('يتم تحديث حالة طلبك...', 'success');
+                        renderOrderTrackingPage(updateInfo.token);
+                    }
+                } 
+                // Listener for chat on customer side
+                else if (event.key === CHAT_EVENT_KEY) {
+                    const chatModal = document.getElementById('chat-modal-content');
+                    if (chatModal) {
+                        const { orderId, sender } = JSON.parse(event.newValue);
+                        if (chatModal.dataset.orderId == orderId && sender !== 'customer') {
+                            renderChatMessages(orderId, 'customer');
+                        }
                     }
                 }
             }
-            // Listener for Admin new order
-            else if (event.key === NEW_ORDER_EVENT_KEY && currentUser?.type === 'admin') {
-                 playNewOrderSound();
-                 showToast('🎉 طلب جديد!', 'success');
-                 if(window.location.hash === '#dashboard' || window.location.hash === '') {
-                     renderDashboard();
-                 }
+
+            // --- Admin View Listeners ---
+            if (currentUser?.type === 'admin') {
+                // Listen for any change in the main database
+                if (event.key === DB_NAME) {
+                    showToast('تحديث جديد للبيانات...', 'success');
+                    loadDB(); // Reload the database in the background
+                    
+                    // Refresh the current page to show changes
+                    const currentHash = window.location.hash.substring(1) || 'dashboard';
+                    if (currentHash === 'dashboard') {
+                        renderDashboard();
+                    } else if (currentHash === 'orders') {
+                        displayOrders();
+                    } else if (currentHash === 'inventory') {
+                        displayInventory();
+                    }
+                }
+                // Also keep listening for the specific new order event for sound notifications
+                else if (event.key === NEW_ORDER_EVENT_KEY) {
+                    playNewOrderSound();
+                    showToast('🎉 طلب جديد!', 'success');
+                    // The DB_NAME listener above will handle the visual refresh
+                }
             }
-             // Listener for Driver new order
-            else if (event.key === DB_NAME && currentUser?.type === 'driver') {
-                handleDriverStorageEvent(event);
+            
+            // --- Driver View Listeners ---
+            if (currentUser?.type === 'driver') {
+                 // Listener for chat on driver side
+                if (event.key === CHAT_EVENT_KEY) {
+                    const chatModal = document.getElementById('chat-modal-content');
+                    if (chatModal) {
+                        const { orderId, sender } = JSON.parse(event.newValue);
+                        if (chatModal.dataset.orderId == orderId && sender !== 'driver') {
+                            renderChatMessages(orderId, 'driver');
+                        }
+                    }
+                }
+                // Listen for any change in the main database to detect new assignments
+                else if (event.key === DB_NAME) {
+                    handleDriverStorageEvent(event);
+                }
             }
         }
+
 
         function renderStoreAppShell() {
             const customerView = document.getElementById('customer-view');
@@ -473,7 +508,7 @@
         
         function renderStoreHomePage() {
             const container = document.getElementById('customer-page-home');
-            const featuredProducts = db.products.filter(p => p.isFeatured && getAvailableStock(p.id) > 0); //--[ CHANGED ]--
+            const featuredProducts = db.products.filter(p => p.isFeatured && getAvailableStock(p.id) > 0);
             container.innerHTML = `
                  <header class="bg-white sticky top-0 z-30 p-4">
                     <div class="flex items-center justify-between">
@@ -764,12 +799,11 @@
                     <button id="submit-rating-btn" class="btn-primary w-full mt-2">إرسال التقييم</button>
                 </div>` : (order.rating ? `<div class="mt-4 text-center text-gray-500">شكراً لتقييمك!</div>` : '');
 
-            //--[ CHANGED ]-- Added new status for driver confirmation
             const statuses = ['pending', 'in_progress', 'awaiting_driver_confirmation', 'out_for_delivery', 'delivered'];
             const statusTexts = { 
                 pending: 'تم الاستلام', 
                 in_progress: 'قيد التجهيز', 
-                awaiting_driver_confirmation: 'بانتظار تأكيد السائق', //--[ NEW ]--
+                awaiting_driver_confirmation: 'بانتظار تأكيد السائق',
                 out_for_delivery: 'في الطريق إليك', 
                 delivered: 'تم التوصيل', 
                 cancelled: 'ملغي' 
@@ -777,7 +811,7 @@
             const statusIcons = { 
                 pending: 'fa-receipt', 
                 in_progress: 'fa-box-open', 
-                awaiting_driver_confirmation: 'fa-motorcycle', //--[ NEW ]--
+                awaiting_driver_confirmation: 'fa-motorcycle',
                 out_for_delivery: 'fa-truck-fast', 
                 delivered: 'fa-house-circle-check', 
                 cancelled: 'fa-ban' 
@@ -785,7 +819,6 @@
             const currentStatusIndex = statuses.indexOf(order.status);
             
             let stepsHtml = '';
-            //--[ CHANGED ]-- Filter out the driver confirmation step from the customer's view for simplicity
             const customerVisibleStatuses = statuses.filter(s => s !== 'awaiting_driver_confirmation');
             customerVisibleStatuses.forEach((status, i) => {
                 const stepOrder = statuses.indexOf(status); // Original index
@@ -796,7 +829,7 @@
             });
 
             let deliveryInfoHtml = '';
-            if ((order.status === 'out_for_delivery' || order.status === 'awaiting_driver_confirmation') && driver) { //--[ CHANGED ]--
+            if ((order.status === 'out_for_delivery' || order.status === 'awaiting_driver_confirmation') && driver) {
                 deliveryInfoHtml = `
                 <div class="mt-4 flex items-center justify-center gap-4 bg-green-50 p-3 rounded-lg">
                     <p class="text-gray-600">السائق: <strong class="text-green-800">${driver.name}</strong></p>
@@ -877,7 +910,6 @@
                 const matchesSearch = name.includes(searchTerm);
                 const matchesCategory = activeCategory === 'all' || p.category === activeCategory;
                 const matchesGemini = !geminiFilter || geminiFilter.includes(name);
-                //--[ CHANGED ]-- Filter out products with no available stock
                 return (matchesSearch || !!geminiFilter) && matchesCategory && matchesGemini && !p.isFeatured && getAvailableStock(p.id) > 0;
             });
 
@@ -891,8 +923,8 @@
 
         function createProductCard(product) {
             const finalPrice = getProductPrice(product); const hasPromo = finalPrice < product.price; const quantityInCart = cart[product.id] || 0;
-            const availableStock = getAvailableStock(product.id); //--[ CHANGED ]--
-            const isOutOfStock = availableStock <= 0; //--[ CHANGED ]--
+            const availableStock = getAvailableStock(product.id);
+            const isOutOfStock = availableStock <= 0;
             let actionButtonHtml = isOutOfStock 
                 ? `<div class="text-center text-red-500 font-bold p-2 w-32">نفدت الكمية</div>` 
                 : quantityInCart > 0 
@@ -927,16 +959,16 @@
 
         function updateCart(productId, change) {
             const product = getDB().products.find(p => p.id == productId); if(!product) return;
-            const availableStock = getAvailableStock(product.id); //--[ CHANGED ]--
-            let currentQty = cart[productId] || 0; currentQty += change;
-            if (currentQty < 0) currentQty = 0;
-
-            //--[ CHANGED ]-- Check against available stock (real stock - reserved) instead of total stock
-            const cartQtyOfOthers = currentQty - (cart[productId] || 0);
-            if (cartQtyOfOthers > availableStock) {
+            const availableStock = getAvailableStock(product.id);
+            let currentQty = cart[productId] || 0; 
+            
+            if (change > 0 && currentQty + change > availableStock) {
                  showToast(`الكمية المتاحة هي ${availableStock} فقط.`, 'error');
                  return; // Do not update cart
             }
+
+            currentQty += change;
+            if (currentQty < 0) currentQty = 0;
 
             if (currentQty > 0) cart[productId] = currentQty; else delete cart[productId];
             saveCart(); 
@@ -947,10 +979,10 @@
             const quantityInCart = cart[productId] || 0;
             const actionArea = card.querySelector('.flex-shrink-0:last-child');
             if (actionArea) {
-                const isOutOfStock = availableStock <= 0;
+                const isOutOfStock = availableStock <= quantityInCart;
                 let newActionHtml = '';
                 if (isOutOfStock && quantityInCart === 0) { newActionHtml = `<div class="text-center text-red-500 font-bold p-2 w-32">نفدت الكمية</div>`; } 
-                else if (quantityInCart > 0) { newActionHtml = `<div class="flex items-center justify-center gap-2 bg-gray-200 rounded-full p-1"><button class="update-cart-btn bg-white rounded-full h-8 w-8 font-bold text-lg" data-id="${product.id}" data-change="-1">-</button><span class="font-bold text-lg w-8 text-center">${quantityInCart}</span><button class="update-cart-btn bg-white rounded-full h-8 w-8 font-bold text-lg" data-id="${product.id}" data-change="1">+</button></div>`; } 
+                else if (quantityInCart > 0) { newActionHtml = `<div class="flex items-center justify-center gap-2 bg-gray-200 rounded-full p-1"><button class="update-cart-btn bg-white rounded-full h-8 w-8 font-bold text-lg" data-id="${product.id}" data-change="-1">-</button><span class="font-bold text-lg w-8 text-center">${quantityInCart}</span><button class="update-cart-btn bg-white rounded-full h-8 w-8 font-bold text-lg" data-id="${product.id}" data-change="1" ${isOutOfStock ? 'disabled' : ''}>+</button></div>`; } 
                 else { newActionHtml = `<button class="update-cart-btn btn-primary btn-sm w-32 bg-orange-500 hover:bg-orange-600" data-id="${product.id}" data-change="1">أضف للسلة</button>`; }
                 actionArea.innerHTML = newActionHtml;
             }
@@ -959,6 +991,16 @@
         function handlePublicOrderSubmit(e) {
             e.preventDefault();
             if (Object.keys(cart).length === 0) { showToast('سلة المشتريات فارغة!', 'error'); return; }
+            
+            // Final stock check before submitting
+            for (const [productId, quantity] of Object.entries(cart)) {
+                if (quantity > getAvailableStock(Number(productId))) {
+                    showToast(`عذراً، الكمية المطلوبة من منتج "${db.products.find(p=>p.id==productId).name}" لم تعد متاحة.`, 'error');
+                    renderCheckoutModal(); // Refresh modal to show updated info
+                    return;
+                }
+            }
+
             const form = e.target;
             const customerName = form.customerName.value, address = form.customerAddress.value, phone = form.customerPhone.value;
             const lat = form.customerLat.value;
@@ -978,8 +1020,6 @@
             let subtotal = 0;
             const orderItems = Object.entries(cart).map(([productId, quantity]) => {
                 const product = db.products.find(p => p.id == productId);
-                //--[ REMOVED ]-- Stock is no longer deducted here. It's deducted on admin confirmation.
-                // product.stock -= quantity; 
                 const finalPrice = getProductPrice(product); 
                 subtotal += finalPrice * quantity; 
                 return { productId: Number(productId), name: product.name, quantity, price: finalPrice }; 
@@ -992,9 +1032,11 @@
             const location = { lat: parseFloat(lat), lng: parseFloat(lng) };
             const order = { id: orderId, trackingToken, customerId: customer.id, customerName, customerAddress: address, customerPhone: phone, timestamp: new Date().toISOString(), status: 'pending', items: orderItems, total, driverId: null, rating: null, paymentMethod: 'cash', location: location };
             db.orders.push(order); 
+            
             saveDB();
+            // Fire two events: one specific for new order sound, one general for data change
             localStorage.setItem(NEW_ORDER_EVENT_KEY, JSON.stringify({ orderId: order.id, timestamp: Date.now() }));
-
+            
             let message = `*طلب جديد من ${db.settings.storeName}* 🛍️\n\n*رقم الطلب:* ${orderId}\n*العميل:* ${customerName}\n*العنوان:* ${address}\n*الهاتف:* ${phone}\n\n*لمتابعة طلبك:* ${window.location.origin}${window.location.pathname}#track=${trackingToken}\n\n*--- الطلبات ---*\n${orderItems.map(i => `- ${i.name} (x${i.quantity})`).join('\n')}\n\n*المجموع:* ${total.toFixed(3)} د.ك`;
             window.open(`https://api.whatsapp.com/send?phone=${db.settings.whatsappNumber}&text=${encodeURIComponent(message)}`, '_blank');
             cart = {}; saveCart(); closeModal();
@@ -1010,7 +1052,6 @@
                 return;
             }
 
-            //--[ CHANGED ]-- Separated orders for new confirmation logic
             const newAssignedOrders = db.orders.filter(o => o.driverId === driverId && o.status === 'awaiting_driver_confirmation');
             const activeOrders = db.orders.filter(o => o.driverId === driverId && o.status === 'out_for_delivery');
             const today = new Date().toDateString();
@@ -1024,7 +1065,6 @@
                 return `<span class="text-xs font-bold bg-orange-100 text-orange-800 px-2 py-1 rounded-full"><i class="fa-solid fa-money-bill mr-1"></i>نقدي</span>`;
             };
 
-            //--[ NEW ]-- Card for newly assigned orders needing confirmation
             const newOrdersHtml = newAssignedOrders.length > 0 ? newAssignedOrders.map(o => `
                 <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-4 border-4 border-blue-500 animate-pulse">
                     <div class="p-4">
@@ -1066,7 +1106,7 @@
                             </div>
                         </div>
                         <div class="mt-4 pt-4 border-t flex gap-2">
-                             <a href="https://maps.google.com/maps?daddr=${o.location.lat},${o.location.lng}&saddr=${db.settings.storeLocation.lat},${db.settings.storeLocation.lng}" target="_blank" class="flex-1 text-center btn-primary bg-blue-500 hover:bg-blue-600 btn-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>ابدأ الملاحة</a>
+                             <a href="https://www.google.com/maps/dir/?api=1&origin=${db.settings.storeLocation.lat},${db.settings.storeLocation.lng}&destination=${o.location.lat},${o.location.lng}" target="_blank" class="flex-1 text-center btn-primary bg-blue-500 hover:bg-blue-600 btn-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>ابدأ الملاحة</a>
                             <button class="open-chat-btn flex-1 text-center btn-primary bg-sky-500 hover:bg-sky-600 btn-sm" data-order-id="${o.id}"><i class="fa-solid fa-comments mr-2"></i>محادثة</button>
                         </div>
                         <div class="mt-2">
@@ -1110,12 +1150,10 @@
                     <div id="driver-orders-list">${activeOrdersHtml}</div>
                 </main>`;
             
-            // Initialize maps for each order card
             setTimeout(() => {
                 activeOrders.forEach(o => initDriverOrderMap(o));
             }, 100);
 
-            //--[ NEW ]-- Event listeners and timers for new orders
             newAssignedOrders.forEach(order => {
                 const timerEl = document.getElementById(`timer-${order.id}`);
                 let timeLeft = 60;
@@ -1125,11 +1163,11 @@
                     if (timerEl) timerEl.textContent = timeLeft;
                     if (timeLeft <= 0) {
                         clearInterval(intervalId);
-                        handleDriverResponse(order.id, false); // Auto-reject
+                        handleDriverResponse(order.id, false);
                     }
                 }, 1000);
 
-                driverTimers[order.id] = { intervalId }; // Store to clear later
+                driverTimers[order.id] = { intervalId };
             });
             document.querySelectorAll('.accept-order-btn').forEach(btn => btn.addEventListener('click', e => handleDriverResponse(Number(e.currentTarget.dataset.orderId), true)));
             document.querySelectorAll('.reject-order-btn').forEach(btn => btn.addEventListener('click', e => handleDriverResponse(Number(e.currentTarget.dataset.orderId), false)));
@@ -1156,12 +1194,10 @@
             });
         }
         
-        //--[ NEW ]-- Handle driver accepting or rejecting an order
         function handleDriverResponse(orderId, accepted) {
             const order = db.orders.find(o => o.id === orderId);
             if (!order || order.status !== 'awaiting_driver_confirmation') return;
 
-            // Clear the timer
             if (driverTimers[orderId]) {
                 clearInterval(driverTimers[orderId].intervalId);
                 delete driverTimers[orderId];
@@ -1171,8 +1207,8 @@
                 order.status = 'out_for_delivery';
                 showToast(`تم قبول الطلب #${orderId}`, 'success');
             } else {
-                order.status = 'in_progress'; // Return to admin's queue
-                order.driverId = null; // Un-assign driver
+                order.status = 'in_progress';
+                order.driverId = null;
                 showToast(`تم رفض الطلب #${orderId}`, 'error');
             }
             
@@ -1236,23 +1272,26 @@
         function renderChatMessages(orderId, userType) {
             const messagesContainer = document.getElementById('chat-messages');
             if (!messagesContainer) return;
-            loadDB(); // Ensure we have the latest messages
+            loadDB(); 
             const messages = db.chats[orderId] || [];
             messagesContainer.innerHTML = messages.map(msg => {
-                //--[ CHANGED ]-- Logic to handle admin messages and different views
                 const isMine = msg.sender === userType;
                 const isAdminMsg = msg.sender === 'admin';
                 
                 let alignment = 'justify-start';
                 if (isMine) alignment = 'justify-end';
-                if (isAdminMsg && userType !== 'admin') alignment = 'justify-center'; // Center admin messages for others
+                if (isAdminMsg && userType !== 'admin') alignment = 'justify-center'; 
 
-                let bubbleClass = 'bg-gray-200 text-gray-800 rounded-bl-none'; // Default for other party
-                if (isMine) bubbleClass = 'bg-blue-500 text-white rounded-br-none'; // My messages
-                if (isAdminMsg) bubbleClass = 'bg-purple-100 text-purple-800 border border-purple-300'; // Admin messages
+                let bubbleClass = 'bg-gray-200 text-gray-800 rounded-bl-none'; 
+                if (isMine) bubbleClass = 'bg-blue-500 text-white rounded-br-none'; 
+                if (isAdminMsg) bubbleClass = 'bg-purple-100 text-purple-800 border border-purple-300';
                 
                 let senderName = '';
-                if(isAdminMsg) senderName = `<p class="font-bold text-xs text-purple-600">المدير</p>`;
+                if (isAdminMsg && userType !== 'admin') {
+                    senderName = `<p class="font-bold text-xs text-purple-600">المدير</p>`;
+                } else if (!isMine && userType === 'admin') {
+                    senderName = `<p class="font-bold text-xs ${msg.sender === 'customer' ? 'text-green-600' : 'text-blue-600'}">${msg.sender === 'customer' ? 'العميل' : 'السائق'}</p>`;
+                }
 
 
                 return `
@@ -1277,18 +1316,17 @@
             renderChatMessages(orderId, sender);
         }
 
-        // ----------------- MAP FUNCTIONS (NEW) -----------------
+        // ----------------- MAP FUNCTIONS -----------------
         function initAdminMap() {
             const mapContainer = document.getElementById('dashboard-map');
             if (!mapContainer || typeof google === 'undefined') return;
 
             const map = new google.maps.Map(mapContainer, {
                 zoom: 10,
-                center: db.settings.storeLocation || { lat: 29.3759, lng: 47.9774 }, // Kuwait center
+                center: db.settings.storeLocation || { lat: 29.3759, lng: 47.9774 }, 
                 mapId: 'BAQALTAK_ADMIN_MAP'
             });
 
-            // Add store location marker
             new google.maps.Marker({
                 position: db.settings.storeLocation,
                 map,
@@ -1309,8 +1347,7 @@
                      new google.maps.Marker({
                         position: order.location,
                         map,
-                        title: `طلب #${order.id} - ${order.customerName}`,
-                        icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                        title: `طلب #${order.id} - ${order.customerName}`
                     });
                 }
             });
@@ -1321,8 +1358,7 @@
                     new google.maps.Marker({
                         position: driver.location,
                         map,
-                        title: `السائق: ${driver.name}`,
-                         icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                        title: `السائق: ${driver.name}`
                     });
                 }
             });
@@ -1339,19 +1375,16 @@
                 mapId: `DRIVER_MAP_${order.id}`
             });
 
-            //--[ CHANGED ]-- Add store marker for pickup point
             const storeMarker = new google.maps.Marker({ 
                 position: db.settings.storeLocation, 
                 map, 
-                title: `نقطة الاستلام: ${db.settings.storeName}`,
-                icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                title: `نقطة الاستلام: ${db.settings.storeName}`
              });
 
             const customerMarker = new google.maps.Marker({ 
                 position: order.location, 
                 map, 
-                title: `نقطة التسليم: ${order.customerName}`,
-                icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                title: `نقطة التسليم: ${order.customerName}`
             });
 
             const bounds = new google.maps.LatLngBounds();
@@ -1381,7 +1414,6 @@
             const driver = db.drivers.find(d => d.id === order.driverId);
             if (!mapContainer || typeof google === 'undefined' || !driver || !driver.location || !order.location) return;
 
-            // Clear any existing simulation interval for this order
             if (driverIntervals[order.id]) clearInterval(driverIntervals[order.id]);
 
             const map = new google.maps.Map(mapContainer, {
@@ -1409,17 +1441,16 @@
                 map,
                 title: `السائق: ${driver.name}`,
                 icon: {
-                    url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png", // Different icon
+                    url: "https://maps.google.com/mapfiles/ms/icons/truck.png",
                     scaledSize: new google.maps.Size(40, 40),
                 }
             });
             
-            // Simulation logic
             const startPoint = new google.maps.LatLng(driver.location.lat, driver.location.lng);
             const endPoint = new google.maps.LatLng(order.location.lat, order.location.lng);
             let step = 0;
-            const numSteps = 200; // More steps for smoother animation
-            const timePerStep = 1000; // 1 second per step
+            const numSteps = 200; 
+            const timePerStep = 1000;
 
             driverIntervals[order.id] = setInterval(() => {
                 step++;
@@ -1430,19 +1461,16 @@
                 }
                 const newPos = google.maps.geometry.spherical.interpolate(startPoint, endPoint, step / numSteps);
                 driverMarker.setPosition(newPos);
-                 // Update driver's location in DB for persistence (optional)
                 driver.location = { lat: newPos.lat(), lng: newPos.lng() };
-                // Don't saveDB here to avoid performance issues, maybe save less frequently
             }, timePerStep);
         }
 
         // ----------------- ADMIN FUNCTIONS -----------------
         function handleHashChange() {
-            // Clear all map intervals and instances when view changes
             Object.values(driverIntervals).forEach(clearInterval);
             driverIntervals = {};
-            Object.values(driverTimers).forEach(t => clearInterval(t.intervalId)); //--[ NEW ]--
-            driverTimers = {}; //--[ NEW ]--
+            Object.values(driverTimers).forEach(t => clearInterval(t.intervalId));
+            driverTimers = {};
             mapInstances = {};
 
             if (!currentUser) { renderPublicView(); return; }
@@ -1481,12 +1509,12 @@
         function renderDashboard() {
             const pendingOrders = db.orders.filter(o => o.status === 'pending').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
             const inProgressOrders = db.orders.filter(o => o.status === 'in_progress').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
-            const outForDeliveryOrders = db.orders.filter(o => o.status === 'out_for_delivery' || o.status === 'awaiting_driver_confirmation').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)); //--[ CHANGED ]--
+            const outForDeliveryOrders = db.orders.filter(o => o.status === 'out_for_delivery' || o.status === 'awaiting_driver_confirmation').sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
             const lowStockProducts = db.products.filter(p => p.stock > 0 && p.stock <= (p.lowStockThreshold || 5));
 
             const createOrderCard = (order) => {
                 const driver = order.driverId ? db.drivers.find(d => d.id === order.driverId) : null;
-                const driverInfo = driver ? `<p class="text-xs text-purple-600 font-bold mt-1">مع السائق: ${driver.name}</p>` : '';
+                const driverInfo = driver ? `<p class="text-xs text-purple-600 font-bold mt-1">مع السائق: ${driver.name} ${order.status === 'awaiting_driver_confirmation' ? '(بانتظار التأكيد)' : ''}</p>` : '';
                 return `<div class="order-card border rounded-lg p-4 shadow-sm mb-4">
                     <div class="flex justify-between items-start mb-2">
                         <div><p class="font-bold text-lg">طلب #${order.id}</p><p class="text-sm text-gray-500">${order.customerName}</p></div>
@@ -1533,11 +1561,9 @@
             `;
             renderPage('page-dashboard', content, () => {
                 document.querySelectorAll('.view-order-btn').forEach(btn => btn.addEventListener('click', e => handleViewOrder(Number(btn.dataset.id))));
-                //--[ CHANGED ]-- Deduct stock when admin confirms order
                 document.querySelectorAll('.start-processing-btn').forEach(btn => btn.addEventListener('click', e => { 
                     const order = db.orders.find(o => o.id === Number(btn.dataset.id)); 
                     if(order) { 
-                        // Deduct stock from inventory NOW
                         order.items.forEach(item => {
                             const product = db.products.find(p => p.id === item.productId);
                             if (product) {
@@ -1552,7 +1578,6 @@
                 }));
                 document.querySelectorAll('.assign-driver-btn').forEach(btn => btn.addEventListener('click', e => openDeliveryModal(Number(btn.dataset.id))));
                 
-                // Tab logic
                 document.querySelectorAll('#dashboard-tabs .tab-link').forEach(tab => {
                     tab.addEventListener('click', e => {
                         e.preventDefault();
@@ -1564,7 +1589,7 @@
                         document.getElementById(targetViewId).classList.remove('hidden');
 
                         if (targetViewId === 'map-view') {
-                            setTimeout(initAdminMap, 50); // Delay to ensure container is visible
+                            setTimeout(initAdminMap, 50);
                         }
                     });
                 });
@@ -1581,7 +1606,6 @@
                 const driverId = Number(e.target.driverId.value);
                 const driver = db.drivers.find(d => d.id === driverId);
                 if (!driver) { showToast('الرجاء اختيار سائق', 'error'); return; }
-                //--[ CHANGED ]-- Set to new status for driver confirmation
                 order.status = 'awaiting_driver_confirmation';
                 order.driverId = driverId;
                 if (!driver.location) driver.location = db.settings.storeLocation;
@@ -1597,7 +1621,6 @@
         function displayInventory() { 
             const list = document.querySelector('#inventory-list tbody'); 
             if(!list) return; 
-            //--[ CHANGED ]-- Added reserved and available columns
             list.innerHTML = db.products.map(p => {
                 const reserved = getReservedStock(p.id);
                 const available = p.stock - reserved;
@@ -1613,10 +1636,10 @@
                     </td> 
                 </tr>`
             }).join('') || '<tr><td colspan="6" class="text-center p-4">لا توجد منتجات.</td></tr>'; 
-            document.querySelectorAll('.edit-product-btn').forEach(b => b.addEventListener('click', e => handleAddEditProduct(Number(e.currentTarget.closest('tr').querySelector('.edit-product-btn').dataset.id)))); 
+            document.querySelectorAll('.edit-product-btn').forEach(b => b.addEventListener('click', e => handleAddEditProduct(Number(e.currentTarget.closest('tr').dataset.id)))); 
             document.querySelectorAll('.delete-product-btn').forEach(b => b.addEventListener('click', e => { 
                 if(confirm('هل أنت متأكد من الحذف؟')) { 
-                    db.products = db.products.filter(p => p.id !== Number(e.currentTarget.closest('tr').querySelector('.delete-product-btn').dataset.id)); 
+                    db.products = db.products.filter(p => p.id !== Number(e.currentTarget.closest('tr').dataset.id)); 
                     saveDB(); 
                     displayInventory(); 
                     showToast('تم حذف المنتج.'); 
@@ -1705,14 +1728,13 @@
             const shipping = order.total - subtotal; 
             const driverOptions = db.drivers.map(d => `<option value="${d.id}" ${order.driverId === d.id ? 'selected' : ''}>${d.name}</option>`).join(''); 
             
-            //--[ CHANGED ]-- Admin can now see the chat and send messages
             const chatHistory = (db.chats[orderId] || []).map(msg => {
                  let bubbleClass = 'bg-gray-100';
-                 let senderName = msg.sender === 'customer' ? 'العميل' : 'السائق';
-                 if (msg.sender === 'admin') {
-                     bubbleClass = 'bg-purple-100';
-                     senderName = 'أنت (المدير)';
-                 }
+                 let senderName = msg.sender === 'customer' ? 'العميل' : (msg.sender === 'driver' ? 'السائق' : 'المدير');
+                 if (msg.sender === 'admin') { bubbleClass = 'bg-purple-100' }
+                 else if (msg.sender === 'customer') { bubbleClass = 'bg-green-100' }
+                 else if (msg.sender === 'driver') { bubbleClass = 'bg-blue-100' }
+
                  return `<div class="p-2 rounded-lg ${bubbleClass} mb-2">
                     <p class="font-bold text-sm">${senderName}</p>
                     <p>${msg.text}</p>
@@ -1726,34 +1748,20 @@
             document.getElementById('copy-tracking-link').addEventListener('click', () => { navigator.clipboard.writeText(trackingLink); showToast('تم نسخ الرابط!'); }); 
             document.getElementById('print-receipt-btn').addEventListener('click', () => window.print()); 
             
-            //--[ CHANGED ]-- Add listener for admin chat form
             document.getElementById('admin-chat-form').addEventListener('submit', (e) => {
                 e.preventDefault();
                 const input = document.getElementById('admin-chat-input');
                 const text = input.value.trim();
                 if (text) {
                     handleSendMessage(orderId, 'admin', text);
-                    input.value = '';
-                    // Re-render chat history in the modal
-                    const updatedHistory = (db.chats[orderId] || []).map(msg => {
-                        let bubbleClass = 'bg-gray-100';
-                        let senderName = msg.sender === 'customer' ? 'العميل' : 'السائق';
-                        if (msg.sender === 'admin') {
-                            bubbleClass = 'bg-purple-100';
-                            senderName = 'أنت (المدير)';
-                        }
-                        return `<div class="p-2 rounded-lg ${bubbleClass} mb-2"><p class="font-bold text-sm">${senderName}</p><p>${msg.text}</p><p class="text-xs text-gray-400 text-left">${timeAgo(msg.timestamp)}</p></div>`
-                    }).join('');
-                    document.getElementById('admin-chat-history').innerHTML = updatedHistory;
+                    handleViewOrder(orderId); // Refresh the modal to show the new message
                 }
             });
 
-            //--[ CHANGED ]-- Add logic to return stock on cancellation
             document.getElementById('save-status-btn').addEventListener('click', () => { 
                 const oldStatus = order.status;
                 const newStatus = document.getElementById('update-status-select').value; 
                 if (oldStatus !== newStatus && newStatus === 'cancelled') {
-                    // Only return stock if order was confirmed (stock was deducted)
                     if (oldStatus === 'in_progress' || oldStatus === 'out_for_delivery' || oldStatus === 'awaiting_driver_confirmation') {
                          order.items.forEach(item => {
                             const product = db.products.find(p => p.id === item.productId);
@@ -1777,7 +1785,7 @@
                 if(driverId) { 
                     order.driverId = driverId; 
                     if(order.status === 'in_progress' || order.status === 'pending') {
-                        order.status = 'awaiting_driver_confirmation'; //--[ CHANGED ]--
+                        order.status = 'awaiting_driver_confirmation';
                     }
                     saveDB(); 
                     localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() })); 
@@ -1900,7 +1908,7 @@
             document.getElementById('driver-form').addEventListener('submit', e => {
                 e.preventDefault();
                 const data = new FormData(e.target);
-                const driverData = { name: data.get('name'), phone: data.get('phone'), pin: data.get('pin'), location: d.location || db.settings.storeLocation }; // Assign store location on creation
+                const driverData = { name: data.get('name'), phone: data.get('phone'), pin: data.get('pin'), location: d.location || db.settings.storeLocation };
                 if (isEdit) {
                     Object.assign(db.drivers.find(dr => dr.id === id), driverData);
                 } else {
