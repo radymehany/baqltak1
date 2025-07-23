@@ -72,17 +72,22 @@
         .category-filters-container::-webkit-scrollbar { display: none; }
         .category-filters-container { -ms-overflow-style: none; scrollbar-width: none; }
         
+        /* --- NEW 2026 Tracking Steps CSS --- */
         .step-item { display: flex; flex-direction: column; align-items: center; position: relative; color: #9ca3af; transition: all 0.5s ease; }
-        .step-icon-wrapper { width: 60px; height: 60px; border-radius: 50%; background-color: #e5e7eb; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: all 0.3s ease; border: 4px solid #f1f5f9; }
-        .step-label { font-weight: 600; margin-top: 0.5rem; font-size: 0.875rem; text-align: center; }
-        .step-connector { border-style: dashed; transition: border-color 0.3s ease; border-color: #e5e7eb; }
-        .step-item.completed .step-icon-wrapper { background-color: #22c55e !important; color: white !important; }
-        .step-item.completed .step-label { color: #1e293b !important; }
-        .step-item.active .step-icon-wrapper { background-color: #3b82f6 !important; color: white !important; transform: scale(1.1); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3); }
-        .step-item.active .step-label { color: #3b82f6 !important; }
-        .step-connector.completed { border-style: solid !important; border-color: #22c55e !important; }
-        body.dark-mode .step-item.completed .step-label { color: #e2e8f0 !important; }
-        body.dark-mode .step-icon-wrapper { border-color: #0f172a; }
+        .step-icon-wrapper { width: 50px; height: 50px; border-radius: 50%; background-color: #e5e7eb; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; transition: all 0.3s ease; border: 3px solid #f1f5f9; }
+        .step-label { font-weight: 600; margin-top: 0.5rem; font-size: 0.8rem; text-align: center; }
+        .step-connector { border-style: solid; transition: border-color 0.5s ease 0.2s; border-color: #e5e7eb; }
+        .step-item.completed .step-icon-wrapper { background-color: #22c55e; color: white; border-color: #dcfce7; }
+        .step-item.completed .step-label { color: #1e293b; }
+        .step-item.active .step-icon-wrapper { background-color: #3b82f6; color: white; border-color: #dbeafe; transform: scale(1.15); box-shadow: 0 0 15px rgba(59, 130, 246, 0.4); }
+        .step-item.active .step-label { color: #3b82f6; }
+        .step-connector.completed { border-color: #22c55e; }
+        body.dark-mode .step-item.completed .step-label { color: #e2e8f0; }
+        body.dark-mode .step-icon-wrapper { border-color: #1e293b; }
+        body.dark-mode .step-connector { border-color: #374151; }
+        body.dark-mode .step-item.completed .step-icon-wrapper { border-color: #166534; }
+        body.dark-mode .step-item.active .step-icon-wrapper { border-color: #1e40af; }
+        body.dark-mode .step-connector.completed { border-color: #22c55e; }
 
         .rating .fa-star { color: #e5e7eb; cursor: pointer; transition: color 0.2s; }
         .rating .fa-star.selected, .rating:hover .fa-star:hover, .rating .fa-star:hover ~ .fa-star { color: #f59e0b !important; }
@@ -537,7 +542,7 @@
                 deliveryInfoHtml = `<div class="mt-4 flex items-center justify-center gap-4 bg-green-50 p-3 rounded-lg"><img src="${driver.profilePictureUrl || 'http://googleusercontent.com/file_content/2'}" alt="${driver.name}" class="w-12 h-12 rounded-full border-2 border-white shadow-md"><p class="text-gray-600">السائق: <strong class="text-green-800">${driver.name}</strong></p><button id="open-chat-btn" data-order-id="${order.id}" class="btn-primary btn-sm"><i class="fa-solid fa-comments"></i></button></div>`;
             }
             const orderItemsHtml = order.items.map(item => `<div class="flex justify-between items-center py-2 border-b"><span>${db.products.find(p=>p.id === item.productId)?.name || 'منتج محذوف'} (x${item.quantity})</span><span class="font-semibold">${(item.price * item.quantity).toFixed(3)} د.ك</span></div>`).join('');
-            const mapHtml = (order.status === 'out_for_delivery' && driver && driver.location && order.location) ? `<div class="mt-8"><h3 class="font-bold text-lg mb-4 text-center">تتبع السائق المباشر</h3><div id="customer-tracking-map" class="map-container"></div></div>` : '';
+            const mapHtml = (order.status === 'out_for_delivery' && driver && driver.location && order.location) ? `<div class="mt-8"><h3 class="font-bold text-lg mb-4 text-center">تتبع السائق المباشر</h3><div id="customer-tracking-map" class="map-container"></div><div id="location-edit-controls" class="mt-2 text-center"></div></div>` : '';
             container.innerHTML = `<header class="bg-white sticky top-0 z-30 p-4 shadow-sm flex items-center"><a href="#myorders" class="customer-nav-link text-xl"><i class="fa-solid fa-arrow-right"></i></a><h1 class="text-2xl font-bold text-center flex-grow">تتبع الطلب</h1></header><main class="max-w-4xl mx-auto p-4"><div class="bg-white p-6 md:p-8 rounded-xl shadow-lg"><div class="text-center mb-8"><h1 class="text-3xl font-bold">حالة طلبك</h1><p class="text-gray-500 mt-2">رقم الطلب: <span class="font-mono">#${order.id}</span></p></div><div class="border rounded-lg p-4 mb-8">${orderItemsHtml}<div class="flex justify-between items-center pt-2 font-bold text-xl"><span>الإجمالي</span><span>${order.total.toFixed(3)} د.ك</span></div></div><div class="w-full mb-8"><div class="flex items-center">${stepsHtml}</div></div>${mapHtml}<div class="text-center mt-8 bg-gray-50 p-6 rounded-lg"><div class="text-7xl text-blue-500" id="status-icon"><i class="fa-solid ${statusIcons[order.status]}"></i></div><p class="font-bold text-xl mt-4" id="status-text">${statusTexts[order.status]}</p>${deliveryInfoHtml}</div>${ratingUI}</div></main>`;
             
             if (order.status === 'out_for_delivery' && driver && driver.location && order.location) { setTimeout(() => initCustomerTrackingMap(order), 100); }
@@ -725,8 +730,8 @@
                 const oldOrders = JSON.parse(oldDbData).orders.filter(o => o.driverId === currentUser.id && o.status === 'awaiting_driver_confirmation');
                 const newOrders = db.orders.filter(o => o.driverId === currentUser.id && o.status === 'awaiting_driver_confirmation');
                 if (newOrders.length > oldOrders.length) {
-                    const newlyAddedOrder = newOrders[newOrders.length - 1];
-                    renderNewOrderModal(newlyAddedOrder);
+                    const newlyAddedOrder = newOrders.find(no => !oldOrders.some(oo => oo.id === no.id));
+                    if(newlyAddedOrder) renderNewOrderModal(newlyAddedOrder);
                 }
                 renderDriverTabs('tasks'); // Refresh tasks in background
             }
@@ -816,6 +821,25 @@
             const map = new google.maps.Map(mapContainer, { zoom: 12, center: order.location, mapId: `CUSTOMER_TRACKING_MAP_${order.id}` });
             const customerMarker = new google.maps.Marker({ position: order.location, map, title: "موقعك", icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: "#ea580c", fillOpacity: 1, strokeWeight: 2, strokeColor: "white", },});
             const driverMarker = new google.maps.Marker({ position: driver.location, map, title: `السائق: ${driver.name}`, icon: { url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png", scaledSize: new google.maps.Size(48, 48), }});
+            
+            const locationControls = document.getElementById('location-edit-controls');
+            locationControls.innerHTML = `<button id="edit-location-btn" class="btn-primary btn-sm bg-yellow-500 hover:bg-yellow-600">تعديل موقع التسليم</button>`;
+            document.getElementById('edit-location-btn').addEventListener('click', () => {
+                customerMarker.setDraggable(true);
+                map.setOptions({ draggableCursor: 'grab' });
+                locationControls.innerHTML = `<button id="save-location-btn" class="btn-primary btn-sm bg-green-500 hover:bg-green-600">تأكيد الموقع الجديد</button>`;
+                document.getElementById('save-location-btn').addEventListener('click', () => {
+                    const newPos = customerMarker.getPosition();
+                    order.location = { lat: newPos.lat(), lng: newPos.lng() };
+                    saveDB();
+                    localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() }));
+                    customerMarker.setDraggable(false);
+                    map.setOptions({ draggableCursor: '' });
+                    showToast('تم تحديث موقع التسليم بنجاح!');
+                    locationControls.innerHTML = `<button id="edit-location-btn" class="btn-primary btn-sm bg-yellow-500 hover:bg-yellow-600">تعديل موقع التسليم</button>`;
+                });
+            });
+
             const startPoint = new google.maps.LatLng(driver.location.lat, driver.location.lng), endPoint = new google.maps.LatLng(order.location.lat, order.location.lng);
             let step = 0; const numSteps = 200, timePerStep = 1000;
             driverIntervals[order.id] = setInterval(() => { step++; if (step > numSteps) { clearInterval(driverIntervals[order.id]); delete driverIntervals[order.id]; return; } const newPos = google.maps.geometry.spherical.interpolate(startPoint, endPoint, step / numSteps); driverMarker.setPosition(newPos); driver.location = { lat: newPos.lat(), lng: newPos.lng() }; }, timePerStep);
