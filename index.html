@@ -16,7 +16,6 @@
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
 
-    <!-- Google Maps API Script - Key has been updated -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCvZscmN14AHKQRwUQNDX6PPQvYXeMkc-U&libraries=places,geometry"></script>
 
 
@@ -114,7 +113,6 @@
 </head>
 <body class="light-mode">
     <div id="root-container">
-        <!-- SELECTION VIEW -->
         <div id="selection-view" class="view flex flex-col items-center justify-center h-screen p-4">
             <div class="p-8 md:p-12 rounded-lg shadow-2xl text-center w-full max-w-md bg-white">
                 <img id="logo-selection" src="" alt="Logo" class="max-w-[180px] h-auto mx-auto mb-6">
@@ -127,10 +125,8 @@
             </div>
         </div>
         
-        <!-- PASSWORD OVERLAY -->
         <div id="password-overlay" class="view fixed inset-0 bg-gray-900 bg-opacity-75 flex-col items-center justify-center z-50 p-4"></div>
         
-        <!-- ADMIN APP CONTAINER -->
         <div id="app-container" class="view">
             <div class="relative min-h-screen md:flex">
                 <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden md:hidden"></div>
@@ -177,10 +173,8 @@
             </div>
         </div>
         
-        <!-- CUSTOMER VIEW -->
         <div id="customer-view" class="view customer-view-bg min-h-screen"></div>
 
-        <!-- DRIVER PORTAL VIEW -->
         <div id="driver-portal-view" class="view portal-bg min-h-screen"></div>
 
     </div>
@@ -198,9 +192,17 @@
         const logoUrl = "https://d.top4top.io/p_3489e11m01.png";
         let currentUser = null;
         let cart = {};
-        let driverIntervals = {};
-        let driverTimers = {};
+        let activeIntervals = {};
+        let activeTimers = {};
         let mapInstances = {};
+        let locationWatcherId = null; 
+
+        // **NEW**: Professional SVG Icons for the map
+        const ICONS = {
+            store: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#4A90E2" width="48px" height="48px"><path d="M0 0h24v24H0V0z" fill="none"/><path d="M12 3L2 12h3v8h14v-8h3L12 3zm.71 14.29l-1.42-1.42L8.29 19H5v-5l3-3 1.41 1.41L8 13.83V17h2.29l2.42-2.42.29-.29zM19 17h-3.29l-2.42-2.42-.29-.29 1.42-1.42L16 13.83V11l3-3v7h-3z"/></svg>`,
+            driver: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#F5A623" width="48px" height="48px"><path d="M0 0h24v24H0z" fill="none"/><path d="M15.5 6.5c0-1.66-1.34-3-3-3s-3 1.34-3 3 1.34 3 3 3 3-1.34 3-3zm-3-4c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm-3.17 12.5L12 16l2.67-1H18v-2h-3.33L12 11l-2.67 2H6v2h3.33zM9.5 17c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2zM21 15v-2h-3v2h3zm-4.99 4.34l1.41-1.41L19.5 20l-1.41 1.41-2.09-2.07zM3 15v-2H0v2h3zm3.08-3.08l-1.41 1.41L2.5 15l1.41-1.41 2.17 2.17z"/></svg>`,
+            customer: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#D0021B" width="48px" height="48px"><path d="M0 0h24v24H0z" fill="none"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/></svg>`
+        };
 
         // ----------------- GEMINI API FUNCTION -----------------
         async function callGemini(prompt, buttonElement) {
@@ -310,7 +312,7 @@
         
         function login(username, password) { const user = getDB().users.find(u => u.username === username && u.password === password); if (user) { currentUser = { ...user, type: 'admin' }; sessionStorage.setItem('currentUser', JSON.stringify(currentUser)); return true; } return false; }
         function driverLogin(phone, pin) { const driver = getDB().drivers.find(d => d.phone === phone && d.pin === pin && d.status === 'active'); if (driver) { currentUser = { ...driver, type: 'driver' }; sessionStorage.setItem('currentUser', JSON.stringify(currentUser)); return true; } return false; }
-        function logout() { Object.values(driverIntervals).forEach(clearInterval); driverIntervals = {}; Object.values(driverTimers).forEach(clearTimeout); driverTimers = {}; currentUser = null; sessionStorage.removeItem('currentUser'); window.location.hash = ''; window.location.reload(); }
+        function logout() { Object.values(activeIntervals).forEach(clearInterval); activeIntervals = {}; Object.values(activeTimers).forEach(clearTimeout); activeTimers = {}; if (locationWatcherId) { navigator.geolocation.clearWatch(locationWatcherId); locationWatcherId = null; } currentUser = null; sessionStorage.removeItem('currentUser'); window.location.hash = ''; window.location.reload(); }
         function showToast(message, type = 'success') { const c = document.getElementById('toast-container'); const t = document.createElement('div'); t.className = `p-4 rounded-lg shadow-lg text-white font-bold ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`; t.textContent = message; c.prepend(t); setTimeout(() => t.remove(), 4000); }
         function openModal(title, content, modalClasses = 'max-w-2xl') { const mC = document.getElementById('modal-container'); mC.innerHTML = `<div class="modal fixed inset-0 bg-black bg-opacity-50" style="display:flex; align-items:center; justify-content:center; z-index: 100;"><div class="modal-content ${modalClasses} w-full m-4 p-6 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"><div class="flex justify-between items-center mb-4 border-b pb-2 no-print"><h2 class="text-2xl font-bold">${title}</h2><button class="close-modal-btn text-3xl">×</button></div><div>${content}</div></div></div>`; mC.querySelector('.close-modal-btn').addEventListener('click', () => mC.innerHTML = ''); }
         function closeModal() { document.getElementById('modal-container').innerHTML = ''; }
@@ -389,9 +391,30 @@
                     }
                 } 
                 else if (event.key === CHAT_EVENT_KEY) { const chatModal = document.getElementById('chat-modal-content'); if (chatModal) { const { orderId, sender } = JSON.parse(event.newValue); if (chatModal.dataset.orderId == orderId && sender !== 'customer') { renderChatMessages(orderId, 'customer'); } } }
+                else if (event.key === DB_NAME) {
+                    const trackHash = window.location.hash;
+                    if (trackHash.startsWith('#track=')) {
+                        loadDB();
+                        const orderId = db.orders.find(o => o.trackingToken === trackHash.substring(7))?.id;
+                        if(orderId && activeIntervals[`customer_${orderId}`]) {
+                           // The map will update itself via its own interval, just need to load DB
+                        }
+                    }
+                }
             }
             if (currentUser?.type === 'admin') {
-                if (event.key === DB_NAME) { showToast('تحديث جديد للبيانات...', 'success'); loadDB(); const currentHash = window.location.hash.substring(1) || 'dashboard'; const renderMap = { dashboard: renderDashboard, orders: displayOrders, inventory: displayInventory, drivers: renderDrivers }; if(renderMap[currentHash]) renderMap[currentHash](); }
+                if (event.key === DB_NAME) { 
+                    loadDB(); 
+                    const currentHash = window.location.hash.substring(1) || 'dashboard'; 
+                    if (currentHash === 'dashboard' && document.getElementById('map-view')?.checkVisibility()) { 
+                        // Map will update via its own interval, do nothing here to avoid flicker
+                    } 
+                    else {
+                        showToast('تحديث جديد للبيانات...', 'success');
+                        const renderMap = { dashboard: renderDashboard, orders: displayOrders, inventory: displayInventory, drivers: renderDrivers }; 
+                        if(renderMap[currentHash]) renderMap[currentHash](); 
+                    }
+                }
                 else if (event.key === NEW_ORDER_EVENT_KEY) { playNewOrderSound(); showToast('🎉 طلب جديد!', 'success'); }
             }
             if (currentUser?.type === 'driver') {
@@ -502,9 +525,18 @@
             const button = e.target.closest('button'), statusEl = document.getElementById('location-status'), latInput = document.querySelector('input[name="customerLat"]'), lngInput = document.querySelector('input[name="customerLng"]');
             if (!navigator.geolocation) { statusEl.textContent = 'المتصفح لا يدعم تحديد الموقع.'; statusEl.classList.add('text-red-500'); return; }
             button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> جاري التحديد...'; statusEl.textContent = 'الرجاء السماح بالوصول إلى موقعك.';
+            const geoOptions = {
+                enableHighAccuracy: true,
+                timeout: 10000, // 10 seconds
+                maximumAge: 0
+            };
             navigator.geolocation.getCurrentPosition(
                 (p) => { latInput.value = p.coords.latitude; lngInput.value = p.coords.longitude; statusEl.textContent = 'تم تحديد الموقع بنجاح!'; statusEl.classList.remove('text-red-500'); statusEl.classList.add('text-green-600'); button.innerHTML = '<i class="fa-solid fa-check mr-2"></i> تم التحديد'; },
-                (error) => { statusEl.textContent = 'فشل تحديد الموقع.'; statusEl.classList.add('text-red-500'); button.disabled = false; button.innerHTML = '<i class="fa-solid fa-location-crosshairs mr-2"></i>تحديد الموقع الحالي'; console.error(error); }
+                (error) => { 
+                    statusEl.textContent = 'فشل تحديد الموقع. تأكد من تفعيل خدمات الموقع.'; 
+                    statusEl.classList.add('text-red-500'); button.disabled = false; button.innerHTML = '<i class="fa-solid fa-location-crosshairs mr-2"></i>تحديد الموقع الحالي'; console.error("Geolocation Error:", error.message); 
+                },
+                geoOptions
             );
         }
 
@@ -532,17 +564,17 @@
             const ratingUI = order.status === 'delivered' && !order.rating ? `<div class="mt-6 p-4 bg-yellow-50 rounded-lg"><h3 class="font-bold text-lg mb-2">كيف كانت تجربتك؟</h3><div class="mb-2"><div class="rating driver-rating flex flex-row-reverse justify-center text-3xl">${[5,4,3,2,1].map(s => `<i class="far fa-star" data-value="${s}"></i>`).join('')}</div></div><textarea id="rating-comment" class="w-full p-2 border rounded" placeholder="اترك تعليقاً (اختياري)"></textarea><button id="submit-rating-btn" class="btn-primary w-full mt-2">إرسال</button></div>` : (order.rating ? `<div class="mt-4 text-center text-gray-500">شكراً لتقييمك!</div>` : '');
             const statuses = ['pending', 'in_progress', 'awaiting_driver_confirmation', 'out_for_delivery', 'delivered'];
             const statusTexts = { pending: 'تم الاستلام', in_progress: 'قيد التجهيز', awaiting_driver_confirmation: 'بانتظار السائق', out_for_delivery: 'في الطريق إليك', delivered: 'تم التوصيل', cancelled: 'ملغي' };
-            const statusIcons = { pending: 'fa-receipt', in_progress: 'fa-box-open', awaiting_driver_confirmation: 'fa-motorcycle', out_for_delivery: 'fa-truck-fast', delivered: 'fa-house-circle-check', cancelled: 'fa-ban' };
+            const statusIcons = { pending: 'fa-file-invoice-dollar', in_progress: 'fa-boxes-packing', awaiting_driver_confirmation: 'fa-motorcycle', out_for_delivery: 'fa-truck-fast', delivered: 'fa-handshake', cancelled: 'fa-ban' };
             const currentStatusIndex = statuses.indexOf(order.status);
             let stepsHtml = '';
             const customerVisibleStatuses = statuses.filter(s => s !== 'awaiting_driver_confirmation');
             customerVisibleStatuses.forEach((status, i) => { const stepOrder = statuses.indexOf(status); const isCompleted = stepOrder < currentStatusIndex; const isActive = stepOrder === currentStatusIndex || (status === 'out_for_delivery' && order.status === 'awaiting_driver_confirmation'); stepsHtml += `<div class="step-item flex-1 ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}"><div class="step-icon-wrapper"><i class="fa-solid ${statusIcons[status]}"></i></div><p class="step-label">${statusTexts[status]}</p></div>`; if (i < customerVisibleStatuses.length - 1) { stepsHtml += `<div class="flex-auto border-t-2 step-connector ${isCompleted ? 'completed' : ''}"></div>`; }});
             let deliveryInfoHtml = '';
             if ((order.status === 'out_for_delivery' || order.status === 'awaiting_driver_confirmation') && driver) {
-                deliveryInfoHtml = `<div class="mt-4 flex items-center justify-center gap-4 bg-green-50 p-3 rounded-lg"><img src="${driver.profilePictureUrl || 'http://googleusercontent.com/file_content/2'}" alt="${driver.name}" class="w-12 h-12 rounded-full border-2 border-white shadow-md"><p class="text-gray-600">السائق: <strong class="text-green-800">${driver.name}</strong></p><button id="open-chat-btn" data-order-id="${order.id}" class="btn-primary btn-sm"><i class="fa-solid fa-comments"></i></button></div>`;
+                deliveryInfoHtml = `<div class="mt-4 flex items-center justify-center gap-4 bg-green-50 p-3 rounded-lg"><img src="${driver.profilePictureUrl || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500'}" alt="${driver.name}" class="w-12 h-12 rounded-full border-2 border-white shadow-md"><p class="text-gray-600">السائق: <strong class="text-green-800">${driver.name}</strong></p><button id="open-chat-btn" data-order-id="${order.id}" class="btn-primary btn-sm"><i class="fa-solid fa-comments"></i></button></div>`;
             }
             const orderItemsHtml = order.items.map(item => `<div class="flex justify-between items-center py-2 border-b"><span>${db.products.find(p=>p.id === item.productId)?.name || 'منتج محذوف'} (x${item.quantity})</span><span class="font-semibold">${(item.price * item.quantity).toFixed(3)} د.ك</span></div>`).join('');
-            const mapHtml = (order.status === 'out_for_delivery' && driver && driver.location && order.location) ? `<div class="mt-8"><h3 class="font-bold text-lg mb-4 text-center">تتبع السائق المباشر</h3><div id="customer-tracking-map" class="map-container"></div><div id="location-edit-controls" class="mt-2 text-center"></div></div>` : '';
+            const mapHtml = (order.status === 'out_for_delivery' && driver && driver.location && order.location) ? `<div class="mt-8"><h3 class="font-bold text-lg mb-4 text-center">تتبع السائق المباشر</h3><div id="customer-tracking-map" class="map-container"></div><p id="eta-info" class="text-center text-sm font-semibold mt-2 text-blue-600"></p><div id="location-edit-controls" class="mt-2 text-center"></div></div>` : '';
             container.innerHTML = `<header class="bg-white sticky top-0 z-30 p-4 shadow-sm flex items-center"><a href="#myorders" class="customer-nav-link text-xl"><i class="fa-solid fa-arrow-right"></i></a><h1 class="text-2xl font-bold text-center flex-grow">تتبع الطلب</h1></header><main class="max-w-4xl mx-auto p-4"><div class="bg-white p-6 md:p-8 rounded-xl shadow-lg"><div class="text-center mb-8"><h1 class="text-3xl font-bold">حالة طلبك</h1><p class="text-gray-500 mt-2">رقم الطلب: <span class="font-mono">#${order.id}</span></p></div><div class="border rounded-lg p-4 mb-8">${orderItemsHtml}<div class="flex justify-between items-center pt-2 font-bold text-xl"><span>الإجمالي</span><span>${order.total.toFixed(3)} د.ك</span></div></div><div class="w-full mb-8"><div class="flex items-center">${stepsHtml}</div></div>${mapHtml}<div class="text-center mt-8 bg-gray-50 p-6 rounded-lg"><div class="text-7xl text-blue-500" id="status-icon"><i class="fa-solid ${statusIcons[order.status]}"></i></div><p class="font-bold text-xl mt-4" id="status-text">${statusTexts[order.status]}</p>${deliveryInfoHtml}</div>${ratingUI}</div></main>`;
             
             if (order.status === 'out_for_delivery' && driver && driver.location && order.location) { setTimeout(() => initCustomerTrackingMap(order), 100); }
@@ -615,12 +647,40 @@
         }
         
         // --- DRIVER PORTAL FUNCTIONS ---
+        function startDriverLocationWatcher() {
+            if (locationWatcherId) {
+                navigator.geolocation.clearWatch(locationWatcherId);
+            }
+            if (!navigator.geolocation) {
+                console.error("Geolocation is not supported by this browser.");
+                return;
+            }
+            locationWatcherId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const driver = getDB().drivers.find(d => d.id === currentUser.id);
+                    if (driver) {
+                        driver.location = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        saveDB();
+                    }
+                },
+                (error) => {
+                    console.error("Error watching driver position:", error);
+                    showToast("خطأ في تحديث الموقع. تأكد من تفعيل GPS.", "error");
+                },
+                { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+            );
+        }
+
         function renderDriverPortal() {
             const driver = currentUser; if (!driver) return;
+            startDriverLocationWatcher(); 
             const portalView = document.getElementById('driver-portal-view');
             portalView.innerHTML = `
                 <header class="bg-white shadow-md sticky top-0 z-10 p-4 flex justify-between items-center">
-                    <div class="flex items-center gap-3"><img src="${driver.profilePictureUrl || 'http://googleusercontent.com/file_content/2'}" class="w-12 h-12 rounded-full object-cover"><div><p class="text-sm text-gray-500">مرحباً بك</p><h1 class="font-bold text-xl">${driver.name}</h1></div></div>
+                    <div class="flex items-center gap-3"><img src="${driver.profilePictureUrl || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500'}" class="w-12 h-12 rounded-full object-cover"><div><p class="text-sm text-gray-500">مرحباً بك</p><h1 class="font-bold text-xl">${driver.name}</h1></div></div>
                     <button id="driver-logout-btn" class="text-red-500 text-xl"><i class="fa-solid fa-right-from-bracket"></i></button>
                 </header>
                 <div class="border-b border-gray-200 dark:border-gray-700"><nav id="driver-tabs" class="flex -mb-px"><a href="#dashboard" class="driver-tab-link shrink-0 border-b-2 border-transparent px-4 py-3 font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">لوحة التحكم</a><a href="#tasks" class="driver-tab-link shrink-0 border-b-2 border-transparent px-4 py-3 font-medium text-gray-500 hover:border-gray-300 hover:text-gray-700">المهام الحالية</a></nav></div>
@@ -652,11 +712,11 @@
         function renderDriverTasks(container) {
             const driver = currentUser;
             const activeOrders = db.orders.filter(o => o.driverId === driver.id && o.status === 'out_for_delivery');
-            const activeOrdersHtml = activeOrders.length > 0 ? activeOrders.map(o => `<div class="bg-white rounded-xl shadow-md mb-4"><div id="driver-map-${o.id}" class="map-container"></div><div class="p-4"><div class="flex justify-between items-start"><div><p class="text-sm text-gray-500">طلب #${o.id}</p><p class="font-bold text-lg">${o.customerName}</p><p class="text-sm text-gray-600"><i class="fa-solid fa-location-dot text-gray-400"></i> ${o.customerAddress}</p></div><div class="text-left"><p class="font-bold text-xl text-green-600">${o.total.toFixed(3)}</p>${o.paymentMethod === 'online' ? `<span class="text-xs font-bold bg-green-100 text-green-800 px-2 py-1 rounded-full"><i class="fa-solid fa-credit-card mr-1"></i>مدفوع</span>` : `<span class="text-xs font-bold bg-orange-100 text-orange-800 px-2 py-1 rounded-full"><i class="fa-solid fa-money-bill mr-1"></i>نقدي</span>`}</div></div><div class="mt-4 pt-4 border-t flex gap-2"><a href="https://www.google.com/maps/dir/?api=1&origin=${driver.location.lat},${driver.location.lng}&destination=${o.location.lat},${o.location.lng}" target="_blank" class="flex-1 btn-primary bg-blue-500 btn-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>الملاحة</a><button class="view-order-details-driver-btn flex-1 btn-primary bg-gray-500 btn-sm" data-order-id="${o.id}"><i class="fa-solid fa-list mr-2"></i>التفاصيل</button></div><div class="mt-2"><button class="w-full btn-primary bg-green-600 btn-sm mark-delivered-btn" data-order-id="${o.id}"><i class="fa-solid fa-check-double mr-2"></i>تأكيد التوصيل</button></div></div></div>`).join('') : `<div class="text-center text-gray-500 p-8 bg-white rounded-lg shadow"><i class="fa-solid fa-box-open text-4xl text-gray-300"></i><p class="mt-4">لا توجد مهام حالية.</p></div>`;
+            const activeOrdersHtml = activeOrders.length > 0 ? activeOrders.map(o => `<div class="bg-white rounded-xl shadow-md mb-4"><div id="driver-map-${o.id}" class="map-container"></div><div class="p-4"><div class="flex justify-between items-start"><div><p class="text-sm text-gray-500">طلب #${o.id}</p><p class="font-bold text-lg">${o.customerName}</p><p class="text-sm text-gray-600"><i class="fa-solid fa-location-dot text-gray-400"></i> ${o.customerAddress}</p></div><div class="text-left"><p class="font-bold text-xl text-green-600">${o.total.toFixed(3)}</p>${o.paymentMethod === 'online' ? `<span class="text-xs font-bold bg-green-100 text-green-800 px-2 py-1 rounded-full"><i class="fa-solid fa-credit-card mr-1"></i>مدفوع</span>` : `<span class="text-xs font-bold bg-orange-100 text-orange-800 px-2 py-1 rounded-full"><i class="fa-solid fa-money-bill mr-1"></i>نقدي</span>`}</div></div><div class="mt-4 pt-4 border-t flex gap-2"><a href="https://www.google.com/maps/dir/?api=1&destination=${o.location.lat},${o.location.lng}" target="_blank" class="flex-1 btn-primary bg-blue-500 btn-sm"><i class="fa-solid fa-map-location-dot mr-2"></i>الملاحة</a><button class="view-order-details-driver-btn flex-1 btn-primary bg-gray-500 btn-sm" data-order-id="${o.id}"><i class="fa-solid fa-list mr-2"></i>التفاصيل</button></div><div class="mt-2"><button class="w-full btn-primary bg-green-600 btn-sm mark-delivered-btn" data-order-id="${o.id}"><i class="fa-solid fa-check-double mr-2"></i>تأكيد التوصيل</button></div></div></div>`).join('') : `<div class="text-center text-gray-500 p-8 bg-white rounded-lg shadow"><i class="fa-solid fa-box-open text-4xl text-gray-300"></i><p class="mt-4">لا توجد مهام حالية.</p></div>`;
             container.innerHTML = activeOrdersHtml;
             
             setTimeout(() => { activeOrders.forEach(o => initDriverOrderMap(o)); }, 100);
-            document.querySelectorAll('.mark-delivered-btn').forEach(btn => { btn.addEventListener('click', (e) => { const orderId = Number(e.currentTarget.dataset.orderId); const order = db.orders.find(o => o.id === orderId); if (order) { if(driverIntervals[orderId]) clearInterval(driverIntervals[orderId]); delete driverIntervals[orderId]; order.status = 'delivered'; saveDB(); localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() })); showToast(`تم تحديث حالة الطلب #${orderId}`); renderDriverPortal(); }}); });
+            document.querySelectorAll('.mark-delivered-btn').forEach(btn => { btn.addEventListener('click', (e) => { const orderId = Number(e.currentTarget.dataset.orderId); const order = db.orders.find(o => o.id === orderId); if (order) { if(activeIntervals[`driver_map_${orderId}`]) clearInterval(activeIntervals[`driver_map_${orderId}`]); delete activeIntervals[`driver_map_${orderId}`]; order.status = 'delivered'; saveDB(); localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() })); showToast(`تم تحديث حالة الطلب #${orderId}`); renderDriverPortal(); }}); });
             document.querySelectorAll('.view-order-details-driver-btn').forEach(btn => btn.addEventListener('click', e => renderOrderItemsForDriver(Number(e.currentTarget.dataset.orderId))));
         }
 
@@ -695,7 +755,7 @@
                     }
                 }
             }, 1000);
-            driverTimers[order.id] = { intervalId };
+            activeTimers[order.id] = { intervalId };
 
             document.querySelector('.accept-order-btn').addEventListener('click', e => handleDriverResponse(Number(e.currentTarget.dataset.orderId), true));
             document.querySelector('.reject-order-btn').addEventListener('click', e => handleDriverResponse(Number(e.currentTarget.dataset.orderId), false));
@@ -716,7 +776,7 @@
         
         function handleDriverResponse(orderId, accepted) {
             const order = db.orders.find(o => o.id === orderId); if (!order || order.status !== 'awaiting_driver_confirmation') return;
-            if (driverTimers[orderId]) { clearInterval(driverTimers[orderId].intervalId); delete driverTimers[orderId]; }
+            if (activeTimers[orderId]) { clearInterval(activeTimers[orderId].intervalId); delete activeTimers[orderId]; }
             if (accepted) { order.status = 'out_for_delivery'; showToast(`تم قبول الطلب #${orderId}`, 'success'); } 
             else { order.status = 'in_progress'; order.driverId = null; showToast(`تم رفض الطلب #${orderId}`, 'error'); }
             saveDB(); localStorage.setItem(STATUS_EVENT_KEY, JSON.stringify({ token: order.trackingToken, status: order.status, timestamp: Date.now() }));
@@ -769,41 +829,135 @@
         }
 
         // --- MAP FUNCTIONS ---
+        function getIcon(type) {
+            const svg = ICONS[type] || ICONS.customer;
+            return {
+                url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+                scaledSize: new google.maps.Size(40, 40),
+                anchor: new google.maps.Point(20, 40)
+            };
+        }
+
         function initAdminMap() {
             const mapContainer = document.getElementById('dashboard-map');
             if (!mapContainer || typeof google === 'undefined') return;
-            const map = new google.maps.Map(mapContainer, { zoom: 11, center: db.settings.storeLocation, mapId: 'BAQALTAK_ADMIN_LIVE_MAP' });
-            const statusTexts = { awaiting_driver_confirmation: 'بانتظار التأكيد', out_for_delivery: 'في طريقه للتوصيل'};
-            const infoWindow = new google.maps.InfoWindow();
-            new google.maps.Marker({ position: db.settings.storeLocation, map, title: db.settings.storeName, icon: { url: 'https://maps.google.com/mapfiles/kml/shapes/shopping_cart.png', scaledSize: new google.maps.Size(40, 40) }});
-            const activeOrders = db.orders.filter(o => ['awaiting_driver_confirmation', 'out_for_delivery'].includes(o.status) && o.driverId);
-            activeOrders.forEach(order => {
-                const driver = db.drivers.find(d => d.id === order.driverId);
-                if (!driver || !driver.location || !order.location) return;
-                const driverMarker = new google.maps.Marker({ position: driver.location, map, title: `السائق: ${driver.name}`, icon: { url: 'https://maps.google.com/mapfiles/kml/shapes/motorcycling.png', scaledSize: new google.maps.Size(48, 48) }});
-                new google.maps.Marker({ position: order.location, map, title: `عميل: ${order.customerName}`, icon: { url: 'https://maps.google.com/mapfiles/kml/shapes/homegardenbusiness.png', scaledSize: new google.maps.Size(40, 40) }});
-                const contentString = `<div style="font-family: 'Cairo', sans-serif; text-align: right; padding: 5px;"><p><strong>السائق:</strong> ${driver.name}</p><p><strong>طلب رقم:</strong> #${order.id}</p><p><strong>العميل:</strong> ${order.customerName}</p><p><strong>الحالة:</strong> ${statusTexts[order.status]}</p></div>`;
-                driverMarker.addListener('click', () => { infoWindow.setContent(contentString); infoWindow.open(map, driverMarker); });
-                new google.maps.Polyline({ path: [driver.location, order.location], geodesic: true, strokeColor: '#4285F4', strokeOpacity: 0.8, strokeWeight: 2, icons: [{ icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW }, offset: '100%', repeat: '100px' }]}).setMap(map);
-            });
+
+            if (!mapInstances.adminMap) {
+                mapInstances.adminMap = new google.maps.Map(mapContainer, {
+                    zoom: 11,
+                    center: db.settings.storeLocation,
+                    mapId: 'BAQALTAK_ADMIN_LIVE_MAP'
+                });
+                mapInstances.adminMapMarkers = { store: null, drivers: {}, customers: {} };
+                mapInstances.adminMapRoutes = {};
+            }
+
+            const updateMap = () => {
+                if (!mapInstances.adminMap) return;
+                loadDB();
+
+                // Store Marker
+                if (!mapInstances.adminMapMarkers.store) {
+                    mapInstances.adminMapMarkers.store = new google.maps.Marker({
+                        position: db.settings.storeLocation,
+                        map: mapInstances.adminMap,
+                        title: db.settings.storeName,
+                        icon: getIcon('store')
+                    });
+                }
+                mapInstances.adminMapMarkers.store.setPosition(db.settings.storeLocation);
+
+                const activeOrders = db.orders.filter(o => ['awaiting_driver_confirmation', 'out_for_delivery'].includes(o.status) && o.driverId);
+                const activeOrderIds = activeOrders.map(o => o.id);
+
+                // Clear stale routes and markers
+                for (const orderId in mapInstances.adminMapRoutes) {
+                    if (!activeOrderIds.includes(Number(orderId))) {
+                        mapInstances.adminMapRoutes[orderId].renderer.setMap(null);
+                        mapInstances.adminMapMarkers.drivers[orderId]?.setMap(null);
+                        mapInstances.adminMapMarkers.customers[orderId]?.setMap(null);
+                        delete mapInstances.adminMapRoutes[orderId];
+                        delete mapInstances.adminMapMarkers.drivers[orderId];
+                        delete mapInstances.adminMapMarkers.customers[orderId];
+                    }
+                }
+
+                activeOrders.forEach(order => {
+                    const driver = db.drivers.find(d => d.id === order.driverId);
+                    if (!driver || !driver.location || !order.location) return;
+
+                    // Create or update driver marker
+                    if (!mapInstances.adminMapMarkers.drivers[order.id]) {
+                        mapInstances.adminMapMarkers.drivers[order.id] = new google.maps.Marker({ map: mapInstances.adminMap, icon: getIcon('driver'), title: `السائق: ${driver.name}` });
+                    }
+                    mapInstances.adminMapMarkers.drivers[order.id].setPosition(driver.location);
+
+                    // Create or update customer marker
+                    if (!mapInstances.adminMapMarkers.customers[order.id]) {
+                         mapInstances.adminMapMarkers.customers[order.id] = new google.maps.Marker({ map: mapInstances.adminMap, icon: getIcon('customer'), title: `عميل: ${order.customerName}` });
+                    }
+                    mapInstances.adminMapMarkers.customers[order.id].setPosition(order.location);
+
+                    // Create or update route
+                    if (!mapInstances.adminMapRoutes[order.id]) {
+                        mapInstances.adminMapRoutes[order.id] = {
+                            renderer: new google.maps.DirectionsRenderer({
+                                map: mapInstances.adminMap,
+                                suppressMarkers: true,
+                                preserveViewport: true,
+                                polylineOptions: { strokeColor: '#4285F4', strokeWeight: 4, strokeOpacity: 0.8 }
+                            }),
+                            service: new google.maps.DirectionsService()
+                        };
+                    }
+                    
+                    mapInstances.adminMapRoutes[order.id].service.route({
+                        origin: driver.location,
+                        destination: order.location,
+                        travelMode: 'DRIVING'
+                    }, (response, status) => {
+                        if (status === 'OK') {
+                            mapInstances.adminMapRoutes[order.id].renderer.setDirections(response);
+                        }
+                    });
+                });
+            };
+
+            updateMap();
+            if (activeIntervals.adminMapUpdater) clearInterval(activeIntervals.adminMapUpdater);
+            activeIntervals.adminMapUpdater = setInterval(updateMap, 10000);
         }
 
         function initDriverConfirmationMap(order) {
-            const mapContainer = document.getElementById(`new-order-map-${order.id}`), distanceContainer = document.getElementById(`distance-${order.id}`);
+            const mapContainer = document.getElementById(`new-order-map-${order.id}`);
+            const distanceContainer = document.getElementById(`distance-${order.id}`);
             if (!mapContainer || typeof google === 'undefined' || !order.location) return;
             const map = new google.maps.Map(mapContainer, { zoom: 12, center: order.location, mapId: `DRIVER_CONFIRM_MAP_${order.id}` });
-            const directionsService = new google.maps.DirectionsService(), directionsRenderer = new google.maps.DirectionsRenderer({ suppressMarkers: true, preserveViewport: true });
+            const directionsService = new google.maps.DirectionsService();
+            const directionsRenderer = new google.maps.DirectionsRenderer({ suppressMarkers: true, preserveViewport: true });
             directionsRenderer.setMap(map);
-            directionsService.route({ origin: db.settings.storeLocation, destination: order.location, travelMode: 'DRIVING' }, (response, status) => {
+
+            new google.maps.Marker({ position: db.settings.storeLocation, map, title: `استلام: ${db.settings.storeName}`, icon: getIcon('store') });
+            new google.maps.Marker({ position: order.location, map, title: `تسليم: ${order.customerName}`, icon: getIcon('customer') });
+
+            directionsService.route({
+                origin: db.settings.storeLocation,
+                destination: order.location,
+                travelMode: 'DRIVING'
+            }, (response, status) => {
                 if (status === 'OK') {
                     directionsRenderer.setDirections(response);
                     const route = response.routes[0].legs[0];
-                    if (distanceContainer && route.distance) { distanceContainer.innerHTML = `<i class="fa-solid fa-route mr-2"></i> المسافة التقريبية: <span class="font-bold">${route.distance.text}</span>`; }
-                    new google.maps.Marker({ position: db.settings.storeLocation, map, title: `استلام: ${db.settings.storeName}`, icon: 'https://maps.google.com/mapfiles/kml/shapes/shopping_cart.png' });
-                    new google.maps.Marker({ position: order.location, map, title: `تسليم: ${order.customerName}`, icon: 'https://maps.google.com/mapfiles/kml/shapes/homegardenbusiness.png' });
-                } else { if (distanceContainer) distanceContainer.textContent = 'تعذر حساب المسار.'; console.warn('Directions request failed due to ' + status); }
+                    if (distanceContainer && route.distance && route.duration) {
+                        distanceContainer.innerHTML = `<i class="fa-solid fa-route mr-2"></i> المسافة: <span class="font-bold">${route.distance.text}</span> | الوقت التقريبي: <span class="font-bold">${route.duration.text}</span>`;
+                    }
+                } else {
+                    if (distanceContainer) distanceContainer.textContent = 'تعذر حساب المسار.';
+                    console.warn('Directions request failed due to ' + status);
+                }
             });
         }
+
 
         function initDriverOrderMap(order) {
             const mapContainer = document.getElementById(`driver-map-${order.id}`); const driver = db.drivers.find(d => d.id === order.driverId);
@@ -811,17 +965,45 @@
             const map = new google.maps.Map(mapContainer, { zoom: 12, center: driver.location, mapId: `DRIVER_MAP_${order.id}` });
             const directionsService = new google.maps.DirectionsService(), directionsRenderer = new google.maps.DirectionsRenderer({ preserveViewport: true });
             directionsRenderer.setMap(map);
-            directionsService.route({ origin: driver.location, destination: order.location, travelMode: 'DRIVING' }, (response, status) => { if (status === 'OK') { directionsRenderer.setDirections(response); } else { console.warn('Directions request failed due to ' + status); }});
+
+            const updateRoute = () => {
+                loadDB();
+                const currentDriver = db.drivers.find(d => d.id === order.driverId);
+                if (!currentDriver?.location) return;
+                directionsService.route({ origin: currentDriver.location, destination: order.location, travelMode: 'DRIVING' }, (response, status) => { if (status === 'OK') { directionsRenderer.setDirections(response); } else { console.warn('Directions request failed due to ' + status); }});
+            }
+            updateRoute();
+            if (activeIntervals[`driver_map_${order.id}`]) clearInterval(activeIntervals[`driver_map_${order.id}`]);
+            activeIntervals[`driver_map_${order.id}`] = setInterval(updateRoute, 30000); // Update route every 30 seconds
         }
         
         function initCustomerTrackingMap(order) {
-            const mapContainer = document.getElementById('customer-tracking-map'); const driver = db.drivers.find(d => d.id === order.driverId);
-            if (!mapContainer || typeof google === 'undefined' || !driver || !driver.location || !order.location) return;
-            if (driverIntervals[order.id]) clearInterval(driverIntervals[order.id]);
-            const map = new google.maps.Map(mapContainer, { zoom: 12, center: order.location, mapId: `CUSTOMER_TRACKING_MAP_${order.id}` });
-            const customerMarker = new google.maps.Marker({ position: order.location, map, title: "موقعك", icon: { path: google.maps.SymbolPath.CIRCLE, scale: 8, fillColor: "#ea580c", fillOpacity: 1, strokeWeight: 2, strokeColor: "white", },});
-            const driverMarker = new google.maps.Marker({ position: driver.location, map, title: `السائق: ${driver.name}`, icon: { url: "https://maps.google.com/mapfiles/kml/shapes/motorcycling.png", scaledSize: new google.maps.Size(48, 48), }});
+            const mapContainer = document.getElementById('customer-tracking-map');
+            const driver = db.drivers.find(d => d.id === order.driverId);
+            if (!mapContainer || typeof google === 'undefined' || !driver || !order.location) return;
             
+            if (activeIntervals[`customer_${order.id}`]) clearInterval(activeIntervals[`customer_${order.id}`]);
+
+            const map = new google.maps.Map(mapContainer, { zoom: 12, center: order.location, mapId: `CUSTOMER_TRACKING_MAP_${order.id}` });
+            
+            const customerMarker = new google.maps.Marker({
+                position: order.location,
+                map,
+                title: "موقعك",
+                icon: getIcon('customer')
+            });
+
+            const driverMarker = new google.maps.Marker({
+                position: driver.location || db.settings.storeLocation,
+                map,
+                title: `السائق: ${driver.name}`,
+                icon: getIcon('driver')
+            });
+
+            const directionsService = new google.maps.DirectionsService();
+            const directionsRenderer = new google.maps.DirectionsRenderer({ suppressMarkers: true, preserveViewport: true, polylineOptions: { strokeColor: '#4285F4', strokeWeight: 5, strokeOpacity: 0.9 } });
+            directionsRenderer.setMap(map);
+
             const locationControls = document.getElementById('location-edit-controls');
             locationControls.innerHTML = `<button id="edit-location-btn" class="btn-primary btn-sm bg-yellow-500 hover:bg-yellow-600">تعديل موقع التسليم</button>`;
             document.getElementById('edit-location-btn').addEventListener('click', () => {
@@ -836,20 +1018,45 @@
                     customerMarker.setDraggable(false);
                     map.setOptions({ draggableCursor: '' });
                     showToast('تم تحديث موقع التسليم بنجاح!');
-                    locationControls.innerHTML = `<button id="edit-location-btn" class="btn-primary btn-sm bg-yellow-500 hover:bg-yellow-600">تعديل موقع التسليم</button>`;
+                    renderOrderTrackingPage(order.trackingToken); 
                 });
             });
 
-            const startPoint = new google.maps.LatLng(driver.location.lat, driver.location.lng), endPoint = new google.maps.LatLng(order.location.lat, order.location.lng);
-            let step = 0; const numSteps = 200, timePerStep = 1000;
-            driverIntervals[order.id] = setInterval(() => { step++; if (step > numSteps) { clearInterval(driverIntervals[order.id]); delete driverIntervals[order.id]; return; } const newPos = google.maps.geometry.spherical.interpolate(startPoint, endPoint, step / numSteps); driverMarker.setPosition(newPos); driver.location = { lat: newPos.lat(), lng: newPos.lng() }; }, timePerStep);
+            const updateMapAndETA = () => {
+                loadDB(); 
+                const currentDriver = db.drivers.find(d => d.id === order.driverId);
+                const currentOrder = db.orders.find(o => o.id === order.id);
+                if (!currentDriver?.location || !currentOrder?.location) return;
+
+                const driverPos = currentDriver.location;
+                const customerPos = currentOrder.location;
+
+                driverMarker.setPosition(driverPos);
+                
+                directionsService.route({ origin: driverPos, destination: customerPos, travelMode: 'DRIVING'}, (response, status) => {
+                    const etaEl = document.getElementById('eta-info');
+                    if (status === 'OK' && response.routes[0]?.legs[0]) {
+                        directionsRenderer.setDirections(response);
+                        const leg = response.routes[0].legs[0];
+                        if (etaEl) {
+                           etaEl.innerHTML = `<i class="fa-solid fa-clock"></i> الوقت المتبقي للوصول: <strong>${leg.duration.text}</strong>`;
+                        }
+                    } else {
+                        if (etaEl) etaEl.textContent = 'جاري حساب الوقت المتبقي...';
+                    }
+                });
+            };
+            
+            updateMapAndETA();
+            activeIntervals[`customer_${order.id}`] = setInterval(updateMapAndETA, 10000);
         }
 
         // ----------------- ADMIN FUNCTIONS -----------------
         function handleHashChange() {
-            Object.values(driverIntervals).forEach(clearInterval); driverIntervals = {};
-            Object.values(driverTimers).forEach(t => clearInterval(t.intervalId)); driverTimers = {};
-            mapInstances = {};
+            Object.values(activeIntervals).forEach(clearInterval); activeIntervals = {};
+            Object.values(activeTimers).forEach(t => clearInterval(t.intervalId)); activeTimers = {};
+            if (locationWatcherId) { navigator.geolocation.clearWatch(locationWatcherId); locationWatcherId = null; }
+
             if (!currentUser) { renderPublicView(); return; }
             const hash = window.location.hash.substring(1) || (currentUser.type === 'admin' ? 'dashboard' : 'driver_portal');
             if (currentUser.type === 'admin') {
@@ -1141,8 +1348,121 @@
         function renderFinance() { const deliveredOrders = db.orders.filter(o => o.status === 'delivered'); const totalRevenue = deliveredOrders.reduce((sum, o) => sum + o.total, 0); const totalExpenses = (db.expenses || []).reduce((sum, e) => sum + e.amount, 0); const netProfit = totalRevenue - totalExpenses; const content = `<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"><div class="p-5 rounded-lg shadow-lg text-center bg-white"><p class="text-3xl font-bold text-green-500">${totalRevenue.toFixed(3)}</p><p class="mt-2 text-gray-600">إجمالي الإيرادات</p></div><div class="p-5 rounded-lg shadow-lg text-center bg-white"><p class="text-3xl font-bold text-red-500">${totalExpenses.toFixed(3)}</p><p class="mt-2 text-gray-600">إجمالي المصروفات</p></div><div class="p-5 rounded-lg shadow-lg text-center bg-white"><p class="text-3xl font-bold ${netProfit >= 0 ? 'text-blue-500' : 'text-orange-500'}">${netProfit.toFixed(3)}</p><p class="mt-2 text-gray-600">صافي الربح</p></div></div><div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white p-5 rounded-lg shadow-lg"><div class="flex justify-between items-center mb-4"><h3 class="font-bold text-xl">المصروفات</h3><button id="add-expense-btn" class="btn-primary btn-sm">إضافة مصروف</button></div><div class="overflow-x-auto max-h-96"><table class="w-full text-right"><tbody>${(db.expenses || []).length > 0 ? db.expenses.slice().reverse().map(e => `<tr class="border-b"><td class="p-2">${e.date}</td><td class="p-2">${e.description}</td><td class="p-2 font-mono">${e.amount.toFixed(3)}</td></tr>`).join('') : `<tr><td colspan="3" class="text-center p-4">لا توجد مصروفات.</td></tr>`}</tbody></table></div></div><div class="bg-white p-5 rounded-lg shadow-lg"><h3 class="font-bold text-xl mb-4">الإيرادات</h3><div class="overflow-x-auto max-h-96"><table class="w-full text-right"><tbody>${deliveredOrders.length > 0 ? deliveredOrders.slice().reverse().map(o => `<tr class="border-b"><td class="p-2">#${o.id}</td><td class="p-2">${new Date(o.timestamp).toLocaleDateString()}</td><td class="p-2 font-mono">${o.total.toFixed(3)}</td></tr>`).join('') : `<tr><td colspan="3" class="text-center p-4">لا توجد إيرادات.</td></tr>`}</tbody></table></div></div></div>`; renderPage('page-finance', content, () => { document.getElementById('add-expense-btn').addEventListener('click', handleAddExpense); }); }
         function handleAddExpense() { const today = new Date().toISOString().slice(0, 10); const formContent = `<form id="expense-form" class="space-y-4"><input name="description" class="p-2 border rounded w-full" placeholder="بيان المصروف" required><div class="grid md:grid-cols-2 gap-4"><input name="amount" type="number" step="0.001" class="p-2 border rounded w-full" placeholder="المبلغ" required><input name="date" type="date" class="p-2 border rounded w-full" value="${today}" required></div><button type="submit" class="w-full btn-primary py-2 mt-2">إضافة</button></form>`; openModal('إضافة مصروف جديد', formContent); document.getElementById('expense-form').addEventListener('submit', (e) => { e.preventDefault(); const form = e.target; db.counters.expense++; const newExpense = { id: db.counters.expense, description: form.description.value, amount: Number(form.amount.value), date: form.date.value }; if(!db.expenses) db.expenses = []; db.expenses.push(newExpense); saveDB(); renderFinance(); closeModal(); showToast('تم إضافة المصروف'); }); }
         function renderAnalytics() { const content = `<div class="grid grid-cols-1 lg:grid-cols-2 gap-6"><div class="bg-white p-4 rounded-lg shadow-lg"><h3 class="font-bold text-lg mb-4">مبيعات آخر 7 أيام</h3><canvas id="salesChart"></canvas></div><div class="bg-white p-4 rounded-lg shadow-lg"><h3 class="font-bold text-lg mb-4">المنتجات الأكثر مبيعًا</h3><div id="topProductsList"></div></div></div>`; renderPage('page-analytics', content, () => { const salesCtx = document.getElementById('salesChart')?.getContext('2d'); if(salesCtx) { const salesData = { labels: [], datasets: [{ label: 'المبيعات (د.ك)', data: [], backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: '#3b82f6', borderWidth: 1 }] }; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); salesData.labels.push(d.toLocaleDateString('ar-EG', { weekday: 'short' })); const dailySales = db.orders.filter(o => new Date(o.timestamp).toDateString() === d.toDateString() && o.status === 'delivered').reduce((sum, o) => sum + o.total, 0); salesData.datasets[0].data.push(dailySales); } new Chart(salesCtx, { type: 'bar', data: salesData, options: { scales: { y: { beginAtZero: true } } } }); } const productSales = {}; db.orders.forEach(o => o.items.forEach(i => productSales[i.name] = (productSales[i.name] || 0) + i.quantity)); const topProducts = Object.entries(productSales).sort((a,b) => b[1] - a[1]).slice(0,5); document.getElementById('topProductsList').innerHTML = topProducts.map(([name, qty]) => `<div class="flex justify-between items-center p-2 border-b"><span class="font-semibold">${name}</span><span class="font-bold">${qty}</span></div>`).join(''); }); }
-        function renderSettings() { const settings = getDB().settings; const content = `<div class="space-y-8 max-w-3xl mx-auto"><div class="bg-white p-6 rounded-lg shadow-lg"><h3 class="text-xl font-bold mb-4 border-b pb-2">إعدادات المتجر</h3><form id="store-settings-form" class="space-y-4"><label class="block">اسم المتجر</label> <input name="storeName" type="text" value="${settings.storeName}" class="w-full p-3 border rounded-lg"><label class="block">رقم الواتساب</label> <input name="whatsappNumber" type="text" value="${settings.whatsappNumber}" class="w-full p-3 border rounded-lg"><label class="block">رسوم التوصيل (د.ك)</label> <input name="shippingFee" type="number" step="0.001" value="${settings.shippingFee}" class="w-full p-3 border rounded-lg"><label class="block">النقاط لكل دينار</label> <input name="pointsPerKWD" type="number" value="${settings.pointsPerKWD}" class="w-full p-3 border rounded-lg"><button type="submit" class="btn-primary">حفظ الإعدادات</button></form></div><div class="bg-white p-6 rounded-lg shadow-lg"><h3 class="text-xl font-bold mb-4 border-b pb-2">البيانات</h3><div class="flex gap-4"><button id="backup-btn" class="flex-1 btn-primary bg-blue-600">نسخ احتياطي</button><button id="restore-btn" class="flex-1 btn-primary bg-green-600">استعادة نسخة</button><input type="file" id="restore-input" class="hidden" accept=".json"></div></div></div>`; renderPage('page-settings', content, () => { document.getElementById('store-settings-form').addEventListener('submit', (e) => { e.preventDefault(); db.settings.storeName = e.target.storeName.value; db.settings.whatsappNumber = e.target.whatsappNumber.value; db.settings.shippingFee = Number(e.target.shippingFee.value); db.settings.pointsPerKWD = Number(e.target.pointsPerKWD.value); saveDB(); showToast('تم حفظ الإعدادات بنجاح.'); }); document.getElementById('backup-btn').addEventListener('click', () => { const dataStr = JSON.stringify(getDB()); const blob = new Blob([dataStr], {type: "application/json"}); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'baqaltak_backup.json'; link.click(); URL.revokeObjectURL(url); }); document.getElementById('restore-btn').addEventListener('click', () => document.getElementById('restore-input').click()); document.getElementById('restore-input').addEventListener('change', (e) => { const file = e.target.files[0]; if(!file || !confirm('سيتم استبدال كل البيانات الحالية.')) return; const reader = new FileReader(); reader.onload = (event) => { try { db = JSON.parse(event.target.result); saveDB(); showToast('تم الاستعادة بنجاح!'); location.reload(); } catch(err) { showToast('ملف غير صالح.', 'error'); }}; reader.readAsText(file); }); }); }
         
+        // **NEW**: Function to initialize the map in the settings page
+        function initSettingsMap() {
+            const settings = getDB().settings;
+            const latInput = document.querySelector('input[name="storeLat"]');
+            const lngInput = document.querySelector('input[name="storeLng"]');
+            const mapContainer = document.getElementById('store-location-map-preview');
+
+            const map = new google.maps.Map(mapContainer, {
+                zoom: 12,
+                center: settings.storeLocation,
+                mapId: 'SETTINGS_MAP'
+            });
+
+            const marker = new google.maps.Marker({
+                position: settings.storeLocation,
+                map: map,
+                draggable: true,
+                icon: getIcon('store')
+            });
+
+            marker.addListener('dragend', () => {
+                const pos = marker.getPosition();
+                latInput.value = pos.lat().toFixed(6);
+                lngInput.value = pos.lng().toFixed(6);
+            });
+
+            document.getElementById('detect-store-location-btn').addEventListener('click', () => {
+                if (!navigator.geolocation) {
+                    showToast('المتصفح لا يدعم تحديد الموقع.', 'error');
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const newPos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        latInput.value = newPos.lat.toFixed(6);
+                        lngInput.value = newPos.lng.toFixed(6);
+                        marker.setPosition(newPos);
+                        map.setCenter(newPos);
+                        showToast('تم تحديد الموقع بنجاح.', 'success');
+                    },
+                    () => {
+                        showToast('فشل تحديد الموقع.', 'error');
+                    },
+                    { enableHighAccuracy: true }
+                );
+            });
+        }
+
+        // **UPDATED**: renderSettings now includes store location management
+        function renderSettings() { 
+            const settings = getDB().settings; 
+            const content = `<div class="space-y-8 max-w-3xl mx-auto">
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-bold mb-4 border-b pb-2">إعدادات المتجر العامة</h3>
+                    <form id="store-settings-form" class="space-y-4">
+                        <label class="block">اسم المتجر</label> 
+                        <input name="storeName" type="text" value="${settings.storeName}" class="w-full p-3 border rounded-lg">
+                        <label class="block">رقم الواتساب</label> 
+                        <input name="whatsappNumber" type="text" value="${settings.whatsappNumber}" class="w-full p-3 border rounded-lg">
+                        <label class="block">رسوم التوصيل (د.ك)</label> 
+                        <input name="shippingFee" type="number" step="0.001" value="${settings.shippingFee}" class="w-full p-3 border rounded-lg">
+                        <label class="block">النقاط لكل دينار</label> 
+                        <input name="pointsPerKWD" type="number" value="${settings.pointsPerKWD}" class="w-full p-3 border rounded-lg">
+                        
+                        <div class="pt-4 mt-4 border-t">
+                             <h3 class="text-xl font-bold mb-4">إعدادات موقع المتجر</h3>
+                             <div id="store-location-map-preview" class="w-full h-64 rounded-lg mb-4 bg-gray-200"></div>
+                             <button type="button" id="detect-store-location-btn" class="w-full btn-primary bg-sky-600 mb-4">تحديد الموقع الحالي للمتجر</button>
+                             <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label>خط العرض (Lat)</label>
+                                    <input name="storeLat" type="number" step="any" value="${settings.storeLocation.lat}" class="w-full p-3 border rounded-lg">
+                                </div>
+                                <div>
+                                    <label>خط الطول (Lng)</label>
+                                    <input name="storeLng" type="number" step="any" value="${settings.storeLocation.lng}" class="w-full p-3 border rounded-lg">
+                                </div>
+                             </div>
+                        </div>
+
+                        <button type="submit" class="btn-primary w-full mt-6">حفظ كل الإعدادات</button>
+                    </form>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-bold mb-4 border-b pb-2">البيانات</h3>
+                    <div class="flex gap-4">
+                        <button id="backup-btn" class="flex-1 btn-primary bg-blue-600">نسخ احتياطي</button>
+                        <button id="restore-btn" class="flex-1 btn-primary bg-green-600">استعادة نسخة</button>
+                        <input type="file" id="restore-input" class="hidden" accept=".json">
+                    </div>
+                </div>
+            </div>`; 
+            renderPage('page-settings', content, () => { 
+                initSettingsMap(); // Initialize the map for settings
+                document.getElementById('store-settings-form').addEventListener('submit', (e) => { 
+                    e.preventDefault(); 
+                    db.settings.storeName = e.target.storeName.value; 
+                    db.settings.whatsappNumber = e.target.whatsappNumber.value; 
+                    db.settings.shippingFee = Number(e.target.shippingFee.value); 
+                    db.settings.pointsPerKWD = Number(e.target.pointsPerKWD.value);
+                    db.settings.storeLocation.lat = Number(e.target.storeLat.value);
+                    db.settings.storeLocation.lng = Number(e.target.storeLng.value);
+                    saveDB(); 
+                    showToast('تم حفظ الإعدادات بنجاح.'); 
+                }); 
+                document.getElementById('backup-btn').addEventListener('click', () => { const dataStr = JSON.stringify(getDB()); const blob = new Blob([dataStr], {type: "application/json"}); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `baqaltak_backup_${new Date().toISOString().slice(0,10)}.json`; link.click(); URL.revokeObjectURL(url); }); 
+                document.getElementById('restore-btn').addEventListener('click', () => document.getElementById('restore-input').click()); 
+                document.getElementById('restore-input').addEventListener('change', (e) => { const file = e.target.files[0]; if(!file || !confirm('سيتم استبدال كل البيانات الحالية. هل أنت متأكد؟')) return; const reader = new FileReader(); reader.onload = (event) => { try { db = JSON.parse(event.target.result); saveDB(); showToast('تم الاستعادة بنجاح!'); location.reload(); } catch(err) { showToast('ملف غير صالح.', 'error'); }}; reader.readAsText(file); }); 
+            }); 
+        }
+
         function renderDrivers() {
             const drivers = db.drivers;
             const getStarRating = (rating) => {
@@ -1201,7 +1521,7 @@
             document.getElementById('driver-form').addEventListener('submit', e => {
                 e.preventDefault();
                 const data = new FormData(e.target);
-                const driverData = { name: data.get('name'), phone: data.get('phone'), pin: data.get('pin'), location: d.location || db.settings.storeLocation };
+                const driverData = { name: data.get('name'), phone: data.get('phone'), pin: data.get('pin'), location: d.location || db.settings.storeLocation, profilePictureUrl: d.profilePictureUrl || 'https://images.pexels.com/photos/220453/pexels-photo-220453.jpeg?auto=compress&cs=tinysrgb&dpr=1&w=500', status: d.status || 'active' };
                 if (isEdit) {
                     Object.assign(db.drivers.find(dr => dr.id === id), driverData);
                 } else {
@@ -1282,7 +1602,7 @@
                 if (initialHash.startsWith('track=')) {
                     selectionView.style.display = 'none';
                     customerView.style.display = 'block';
-                    renderOrderTrackingPage(initialHash.substring(6));
+                    handleCustomerNav('track', initialHash.substring(6));
                 } else {
                     selectionView.style.display = 'flex';
                 }
